@@ -1,0 +1,2 @@
+npm install jspdf html2canvas
+npm install react-barcode

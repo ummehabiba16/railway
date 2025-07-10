@@ -1,0 +1,226 @@
+CREATE TABLE STATION (
+  StationId VARCHAR2(6) PRIMARY KEY,
+  Name VARCHAR2(50) NOT NULL,
+  isOnline CHAR(1) DEFAULT 'Y' CHECK (isOnline IN ('Y', 'N')),
+  location VARCHAR2(100),
+  division VARCHAR2(50),
+  contactNum VARCHAR2(14),
+  status VARCHAR2(8) DEFAULT 'ACTIVE' CHECK (STATUS IN ('ACTIVE', 'INACTIVE'))
+);
+
+CREATE INDEX idx_station_name ON STATION(Name);
+
+CREATE TABLE CLASS (
+  ClassId VARCHAR2(6) PRIMARY KEY,
+  ClassName VARCHAR2(50) NOT NULL,
+  ClassDetails VARCHAR2(200)
+);
+
+CREATE TABLE TRAIN (
+  TrainId VARCHAR2(6) PRIMARY KEY,
+  TrainNum VARCHAR2(6) UNIQUE NOT NULL,
+  TrainName VARCHAR2(100) NOT NULL,
+  FromStationId VARCHAR2(6),
+  ToStationId VARCHAR2(6),
+  OffDay VARCHAR2(10),
+    CONSTRAINT fk_train_from FOREIGN KEY (FromStationId) REFERENCES STATION(StationId),
+    CONSTRAINT fk_train_to FOREIGN KEY (ToStationId) REFERENCES STATION(StationId)
+
+);
+
+CREATE TABLE COACH (
+  CoachId VARCHAR2(6) PRIMARY KEY, 
+  TrainId VARCHAR2(6),
+  ClassId VARCHAR2(6),
+  SeatCount NUMBER DEFAULT 0 CHECK (SeatCount >= 0),
+  CoachName VARCHAR2(6) NOT NULL, -- ??
+  CONSTRAINT fk_coach_train FOREIGN KEY (TrainId) REFERENCES TRAIN(TrainId),
+  CONSTRAINT fk_coach_class FOREIGN KEY (ClassId) REFERENCES CLASS(ClassId)
+);
+
+ALTER TABLE COACH ADD (CoachName VARCHAR2(6));
+
+CREATE TABLE SEAT (
+  SeatId VARCHAR2(6) PRIMARY KEY,
+  SeatNum VARCHAR2(3),
+  BerthPosition CHAR(1) CHECK (BerthPosition IN ('H', 'L')),
+  CoachId VARCHAR2(6),
+  CONSTRAINT fk_seat_coach FOREIGN KEY (CoachId) REFERENCES COACH(CoachId)
+);
+
+CREATE TABLE SEAT_ALLOCATION (
+  TrainSeatId VARCHAR2(6) PRIMARY KEY,
+  SeatId VARCHAR2(6),
+  TrainId VARCHAR2(6),
+  FromStationId VARCHAR2(6),
+  ToStationId VARCHAR2(6),
+  ClassId VARCHAR2(6),
+  Fare NUMBER(8,2),
+  CONSTRAINT fk_sa_seat FOREIGN KEY (SeatId) REFERENCES SEAT(SeatId),
+  CONSTRAINT fk_sa_train FOREIGN KEY (TrainId) REFERENCES TRAIN(TrainId),
+  CONSTRAINT fk_sa_from FOREIGN KEY (FromStationId) REFERENCES STATION(StationId),
+  CONSTRAINT fk_sa_to FOREIGN KEY (ToStationId) REFERENCES STATION(StationId),
+  CONSTRAINT fk_sa_class FOREIGN KEY (ClassId) REFERENCES CLASS(ClassId)
+);
+
+CREATE INDEX idx_seat_alloc_from_to_class 
+ON SEAT_ALLOCATION (FromStationId, ToStationId, ClassId);
+
+CREATE TABLE USER_INFO(
+  UserId VARCHAR2(10) PRIMARY KEY,
+  FirstName VARCHAR2(50) NOT NULL,
+  LastName VARCHAR2(50) NOT NULL,
+  Email VARCHAR2(50) NOT NULL UNIQUE,
+  PhoneNum VARCHAR2(20) UNIQUE,
+  NID VARCHAR2(20) UNIQUE,
+  ProfileImage BLOB,
+  Gender VARCHAR2(1) CHECK (Gender IN ('M', 'F', 'O')),
+  Address VARCHAR2(200),
+  Birth_Reg_Num VARCHAR2(20) UNIQUE,
+  Date_of_Birth DATE
+);
+
+CREATE TABLE BOOKING (
+  BookingId VARCHAR2(15) PRIMARY KEY,
+  UserId VARCHAR2(10),
+  TravelDate DATE,
+  BookingTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  Status VARCHAR2(10) DEFAULT 'PENDING' CHECK(Status in ('PENDING', 'SUCCESSFUL', 'FAILED')),
+  SoldBy CHAR(1) DEFAULT 'U' CHECK(SoldBy in('U', 'S')),
+  NID VARCHAR2(20),
+  CONSTRAINT fk_booking_user FOREIGN KEY (UserId) REFERENCES USER_INFO(UserId)
+
+);
+
+CREATE TABLE TICKET_AUDIT_LOG (
+  AuditId VARCHAR2(15) PRIMARY KEY,
+  BookingID VARCHAR2(15),
+  UserId VARCHAR2(10),
+  SoldBy CHAR(1) DEFAULT 'U' CHECK(SoldBy in('U', 'S')),
+  SoldAtStation VARCHAR2(6),
+  SellTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  Action VARCHAR2(50),
+  CONSTRAINT fk_tal_booking FOREIGN KEY (BookingID) REFERENCES BOOKING(BookingId),
+  CONSTRAINT fk_tal_station FOREIGN KEY (SoldAtStation) REFERENCES STATION(StationId),
+  CONSTRAINT fk_tal_user FOREIGN KEY (UserId) REFERENCES USER_INFO(UserId)
+);
+
+CREATE TABLE ADMIN (
+  AdminId VARCHAR2(6) PRIMARY KEY,
+  AdminName VARCHAR2(50) NOT NULL
+);
+
+
+CREATE TABLE STATION_MASTER (
+  MasterId VARCHAR2(6) PRIMARY KEY,
+  Name VARCHAR2(50),
+  StationId VARCHAR2(6) NOT NULL,
+  Email VARCHAR2(100),
+  PhoneNum VARCHAR2(14),
+  CONSTRAINT fk_sm_station FOREIGN KEY (StationId) REFERENCES STATION(StationId)
+);
+
+CREATE TABLE LOGIN_CREDENTIALS (
+  LoginId VARCHAR2(10) PRIMARY KEY,
+  UserId VARCHAR2(10),
+  MasterId VARCHAR2(6), -- Nullable if not Master
+  AdminId VARCHAR2(6),
+  LoginType VARCHAR2(20),
+  PasswordHash VARCHAR2(255) NOT NULL,
+  Role VARCHAR2(20) DEFAULT 'USER' CHECK (Role IN ('USER', 'ADMIN', 'STATION_MASTER')),
+  CONSTRAINT FK_LOGIN_USER FOREIGN KEY (UserId) REFERENCES USER_INFO(UserId),
+  CONSTRAINT FK_LOGIN_MASTER FOREIGN KEY (MasterId) REFERENCES STATION_MASTER(MasterId),
+  CONSTRAINT FK_LOGIN_ADMIN FOREIGN KEY (AdminId) REFERENCES ADMIN(AdminId)
+
+);
+
+CREATE TABLE INVOICE (
+  InvoiceId VARCHAR2(15) PRIMARY KEY,
+  BookingId VARCHAR2(15) NOT NULL,
+  BaseFare NUMBER(8,2),
+  Vat NUMBER(6,2),
+  ServiceCharge NUMBER(8,2) DEFAULT 20,
+  BeddingCharge NUMBER(8,2) DEFAULT 0,
+  Total NUMBER(10,2),
+  CONSTRAINT FK_INVOICE_BOOKING FOREIGN KEY (BookingId) REFERENCES BOOKING(BookingId)
+);
+
+CREATE TABLE PAYMENT (
+  PaymentId VARCHAR2(15) PRIMARY KEY,
+  TrxId VARCHAR2(15),
+  PaymentMode VARCHAR2(6) NOT NULL,
+  Status VARCHAR2(10) DEFAULT 'PENDING' CHECK(Status in ('PENDING', 'SUCCESSFUL', 'FAILED')),
+  PaymentTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  InvoiceId VARCHAR2(15),
+  CONSTRAINT fk_payment_invoice FOREIGN KEY (InvoiceId) REFERENCES INVOICE(InvoiceId)
+);
+
+CREATE TABLE REFUND (
+  PaymentId VARCHAR2(15),
+  BookingId VARCHAR2(15),
+  RefundAmount NUMBER(10,2),
+  RefundStatus VARCHAR2(10) DEFAULT 'Requested',
+  RequestTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  ProcessedTime TIMESTAMP,
+  PRIMARY KEY (PaymentId, BookingId),
+  CONSTRAINT fk_refund_payment FOREIGN KEY (PaymentId) REFERENCES PAYMENT(PaymentId),
+  CONSTRAINT fk_refund_booking FOREIGN KEY (BookingId) REFERENCES BOOKING(BookingId)
+);
+
+CREATE TABLE TICKET (
+  TicketId VARCHAR2(15) PRIMARY KEY,
+  PassengerName VARCHAR2(100),
+  PassengerType CHAR(1) DEFAULT 'A' CHECK(PassengerType in('A', 'C')),
+  TrainSeatId VARCHAR2(6),
+  BookingHoldUntil TIMESTAMP,
+  TicketStatus VARCHAR2(15) DEFAULT 'AVAILABLE' CHECK(TicketStatus IN('AVAILABLE', 'IN PROGRESS', 'BOOKED')),
+  TravelDate DATE,
+  BookingId VARCHAR2(15),
+  CONSTRAINT fk_ticket_seat FOREIGN KEY (TrainSeatId) REFERENCES SEAT_ALLOCATION(TrainSeatId),
+  CONSTRAINT fk_ticket_booking FOREIGN KEY (BookingId) REFERENCES BOOKING(BookingId)
+);
+
+-- CREATE TABLE ROUTE (
+--   TrainId VARCHAR2(6) ,
+--   FromStationId VARCHAR2(6) ,
+--   ArrivalTime TIMESTAMP,
+--   DepartureTime TIMESTAMP,
+--   Halt NUMBER(5),
+--   Duration NUMBER(5),
+--   Sequence NUMBER(2),
+--   IsActive CHAR(1) DEFAULT 'Y' CHECK (IsActive IN ('Y', 'N')),
+--   ActiveSince TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+--   PRIMARY KEY (TrainId, FromStationId),
+--   CONSTRAINT fk_route_train FOREIGN KEY (TrainId) REFERENCES TRAIN(TrainId),
+--   CONSTRAINT fk_route_station FOREIGN KEY (FromStationId) REFERENCES STATION(StationId)
+-- );
+
+CREATE TABLE ROUTE (
+  TrainId VARCHAR2(6),
+  FromStationId VARCHAR2(6),
+  ArrivalTime TIMESTAMP,
+  DepartureTime TIMESTAMP,
+  Halt NUMBER(5),
+  RouteDuration NUMBER(5),
+  RouteSequence NUMBER(2),
+  IsActive CHAR(1) DEFAULT 'Y' CHECK (IsActive IN ('Y', 'N')),
+  ActiveSince TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+  PRIMARY KEY (TrainId, FromStationId, ActiveSince),
+
+  CONSTRAINT fk_route_train FOREIGN KEY (TrainId) REFERENCES TRAIN(TrainId),
+  CONSTRAINT fk_route_station FOREIGN KEY (FromStationId) REFERENCES STATION(StationId)
+);
+
+
+CREATE TABLE AVAILABLE_DATES(
+  TravelDate DATE NOT NULL,
+  PRIMARY KEY (TravelDate)
+);
+
+CREATE TABLE BUSINESSRULE(
+  AppliedFrom DATE,
+  TicketAvailableBefore NUMBER(2),
+  PRIMARY KEY (AppliedFrom)
+);

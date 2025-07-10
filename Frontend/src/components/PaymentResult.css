@@ -1,0 +1,449 @@
+/* PaymentResult.css */
+.payment-result-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.success-icon {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.checkmark {
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+    background-color: #28a745;
+    color: white;
+    border-radius: 50%;
+    line-height: 60px;
+    font-size: 30px;
+    font-weight: bold;
+    animation: successPulse 0.6s ease-in-out;
+}
+
+@keyframes successPulse {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.payment-result-title {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 28px;
+}
+
+.payment-result-title.success {
+    color: #28a745;
+}
+
+.payment-result-title.error {
+    color: #dc3545;
+}
+
+.payment-result-message {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 16px;
+}
+
+.ticket-container {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+    border: 2px dashed #007bff;
+    position: relative;
+}
+
+.ticket-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #007bff, #28a745, #ffc107, #dc3545);
+}
+
+.ticket-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    padding: 25px;
+    text-align: center;
+    position: relative;
+}
+
+.ticket-header::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #0056b3;
+}
+
+.ticket-header h3 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.ticket-id {
+    font-size: 14px;
+    opacity: 0.9;
+    background: rgba(255,255,255,0.2);
+    padding: 5px 15px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.ticket-content {
+    padding: 30px;
+}
+
+.journey-details {
+    border-bottom: 2px solid #eee;
+    padding-bottom: 25px;
+    margin-bottom: 25px;
+}
+
+.journey-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.journey-point {
+    text-align: center;
+    flex: 1;
+}
+
+.station-name {
+    font-size: 22px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.station-label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.journey-arrow {
+    font-size: 28px;
+    color: #007bff;
+    margin: 0 20px;
+    animation: moveArrow 2s ease-in-out infinite;
+}
+
+@keyframes moveArrow {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+}
+
+.train-info {
+    text-align: center;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.train-name {
+    font-size: 20px;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 8px;
+}
+
+.travel-datetime {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    font-size: 14px;
+    color: #666;
+}
+
+.date, .time {
+    background: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.ticket-details-grid {
+    margin-bottom: 25px;
+}
+
+.detail-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.detail-item {
+    flex: 1;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 3px solid #007bff;
+}
+
+.label {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.value {
+    font-size: 15px;
+    color: #333;
+    font-weight: 600;
+}
+
+.fare-section {
+    border-top: 2px solid #eee;
+    padding-top: 20px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.fare-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fare-label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+
+.fare-amount {
+    font-size: 24px;
+    font-weight: bold;
+    color: #28a745;
+    background: white;
+    padding: 8px 15px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.profile-section {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.passenger-photo {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #007bff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.ticket-footer {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 20px;
+    border-top: 1px solid #eee;
+}
+
+.disclaimer {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    margin: 0;
+    line-height: 1.6;
+    font-style: italic;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.download-button, .home-button {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.download-button {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+}
+
+.download-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+}
+
+.home-button {
+    background: linear-gradient(135deg, #28a745, #218838);
+    color: white;
+    box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+}
+
+.home-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40,167,69,0.4);
+}
+
+.payment-result-button {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 20px auto;
+    display: block;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.payment-result-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+}
+
+.error {
+    text-align: center;
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .payment-result-container {
+        padding: 10px;
+    }
+    
+    .ticket-container {
+        margin: 0 5px 20px 5px;
+    }
+    
+    .journey-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .journey-arrow {
+        transform: rotate(90deg);
+        margin: 10px 0;
+    }
+    
+    .travel-datetime {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .download-button, .home-button {
+        width: 100%;
+        padding: 12px;
+    }
+    
+    .station-name {
+        font-size: 18px;
+    }
+    
+    .train-name {
+        font-size: 16px;
+    }
+    
+    .fare-amount {
+        font-size: 20px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .payment-result-container {
+        background: white;
+        padding: 0;
+    }
+    
+    .action-buttons {
+        display: none;
+    }
+    
+    .ticket-container {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+    
+    .success-icon {
+        display: none;
+    }
+    
+    .payment-result-title {
+        font-size: 20px;
+        margin-bottom: 20px;
+    }
+}

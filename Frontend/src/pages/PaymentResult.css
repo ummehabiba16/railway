@@ -1,0 +1,325 @@
+/* PaymentResult.css */
+.payment-result-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+}
+
+.payment-result-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.payment-result-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+}
+
+.success-card::before {
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+}
+
+.failed-card::before {
+    background: linear-gradient(90deg, #f44336, #d32f2f);
+}
+
+.cancelled-card::before {
+    background: linear-gradient(90deg, #ff9800, #f57c00);
+}
+
+/* Icon Styles */
+.success-icon, .failed-icon, .cancelled-icon {
+    margin-bottom: 20px;
+}
+
+.checkmark, .cross-mark, .info-mark {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    animation: scaleIn 0.5s ease-out;
+}
+
+.checkmark {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.cross-mark {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    color: white;
+}
+
+.info-mark {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: white;
+}
+
+@keyframes scaleIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Typography */
+.result-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 16px;
+    color: #333;
+}
+
+.result-message {
+    font-size: 1.1rem;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+/* Payment Details */
+.payment-details {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 30px 0;
+    text-align: left;
+}
+
+.payment-details h3 {
+    margin-bottom: 16px;
+    color: #333;
+    font-size: 1.3rem;
+    text-align: center;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #555;
+}
+
+.detail-value {
+    font-weight: 500;
+    color: #333;
+}
+
+.success-status {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.failed-status {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.cancelled-status {
+    color: #ff9800;
+    font-weight: bold;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 30px 0;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    min-width: 120px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid #667eea;
+    color: #667eea;
+}
+
+.btn-outline:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Additional Info */
+.additional-info {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.additional-info p {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+.troubleshooting, .booking-info, .help-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px 0;
+    text-align: left;
+}
+
+.troubleshooting h4, .booking-info h4 {
+    color: #333;
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+}
+
+.troubleshooting ul, .booking-info ul {
+    list-style-type: disc;
+    margin-left: 20px;
+    color: #666;
+}
+
+.troubleshooting li, .booking-info li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .payment-result-container {
+        padding: 10px;
+    }
+    
+    .payment-result-card {
+        padding: 30px 20px;
+    }
+    
+    .result-title {
+        font-size: 2rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn {
+        width: 100%;
+        max-width: 280px;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .detail-label {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .payment-result-card {
+        padding: 20px 15px;
+    }
+    
+    .result-title {
+        font-size: 1.8rem;
+    }
+    
+    .checkmark, .cross-mark, .info-mark {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .checkmark svg, .cross-mark svg, .info-mark svg {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .payment-result-container {
+        background: white;
+        min-height: auto;
+    }
+    
+    .payment-result-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    .action-buttons {
+        display: none;
+    }
+    
+    .additional-info {
+        display: none;
+    }
+}
