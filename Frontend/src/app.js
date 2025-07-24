@@ -11,6 +11,7 @@ import PaymentSuccess from "./components/PaymentSuccess";
 import PaymentCancelled from "./pages/paymentCancelled";
 import PaymentFailed from "./pages/paymentFailed";
 import MyBookings from "./components/MyBookings";
+import Profile from "./pages/profile";
 
 function App() {
     return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="/payment/cancelled" element={<PaymentCancelled />} />
             <Route path="/payment/failed" element={<PaymentFailed />} />
             <Route path="/bookings" element={<MyBookings />} />
+            <Route path="/user/profile" element={<Profile />} />
         </Routes>
     );
 }

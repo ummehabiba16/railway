@@ -34,5 +34,33 @@ public class InvoiceRepository {
             throw new RuntimeException("Error saving invoice", e);
         }
     }
+
+    public Invoice findByBookingId(String bookingId) {
+        String sql = "SELECT * FROM INVOICE WHERE BookingId = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, new Object[]{bookingId}, (rs, rowNum) -> {
+                Invoice invoice = new Invoice();
+                invoice.setInvoiceId(rs.getString("InvoiceId"));
+                invoice.setBookingId(rs.getString("BookingId"));
+                invoice.setBaseFare(rs.getDouble("BaseFare"));
+                invoice.setVat(rs.getDouble("Vat"));
+                invoice.setServiceCharge(rs.getDouble("ServiceCharge"));
+                invoice.setBeddingCharge(rs.getDouble("BeddingCharge"));
+                invoice.setTotal(rs.getDouble("Total"));
+                return invoice;
+            });
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Error finding invoice by booking ID", e);
+        }
+    }
+
+    public void deleteByBookingId(String bookingId) {
+        String sql = "DELETE FROM INVOICE WHERE BookingId = ?";
+        try {
+            jdbcTemplate.update(sql, bookingId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Error deleting invoice by booking ID", e);
+        }
+    }
     
 }

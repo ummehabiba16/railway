@@ -180,6 +180,100 @@ public class USER_INFO_REPOSITORY {
         return userId;
     }
 
+    public com.eticket.railway.Entity.USER_INFO getUserProfile(String userId) {
+        String sql = """
+            SELECT UserId, FirstName, LastName, Email, PhoneNum, NID, ProfileImage, Gender, Address, Birth_Reg_Num, Date_of_Birth
+            FROM USER_INFO 
+            WHERE UserId = ?
+        """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                String base64Image = ""; // Default to empty string
+                java.sql.Blob blob = rs.getBlob("ProfileImage");
+                if (blob != null) {
+                    try (java.io.InputStream inputStream = blob.getBinaryStream()) {
+                        byte[] imageBytes = inputStream.readAllBytes(); // Java 9+
+                        base64Image = java.util.Base64.getEncoder().encodeToString(imageBytes);
+                    } catch (java.io.IOException e) {
+                        // Log the error but do not throw
+                        System.err.println("Error reading profile image: " + e.getMessage());
+                    }
+                }
+
+                com.eticket.railway.Entity.USER_INFO userInfo = new com.eticket.railway.Entity.USER_INFO();
+                userInfo.setUserId(rs.getString("UserId"));
+                userInfo.setFirstName(rs.getString("FirstName"));
+                userInfo.setLastName(rs.getString("LastName"));
+                userInfo.setEmail(rs.getString("Email"));
+                userInfo.setPhoneNum(rs.getString("PhoneNum"));
+                userInfo.setNid(rs.getString("NID"));
+                userInfo.setProfileImage(base64Image); // Use base64 encoded string
+                userInfo.setGender(rs.getString("Gender"));
+                userInfo.setAddress(rs.getString("Address"));
+                userInfo.setBirthRegNum(rs.getString("Birth_Reg_Num"));
+                userInfo.setDateOfBirth(rs.getString("Date_of_Birth"));
+                return userInfo;
+            }, userId);
+        } catch (Exception e) {
+            System.err.println("Error getting user profile: " + e.getMessage());
+            throw new RuntimeException("User not found");
+        }
+    }
+
+    public void updateUserProfile(com.eticket.railway.Entity.USER_INFO userInfo) {
+        String sql = """
+            UPDATE USER_INFO 
+            SET FirstName = ?, LastName = ?, Email = ?, PhoneNum = ?, NID = ?, 
+                ProfileImage = ?, Gender = ?, Address = ?, Birth_Reg_Num = ?
+            WHERE UserId = ?
+        """;
+
+        try {
+            // Convert Base64 string back to bytes for BLOB storage
+            byte[] imageBytes = null;
+            if (userInfo.getProfileImage() != null && !userInfo.getProfileImage().trim().isEmpty()) {
+                try {
+                    imageBytes = java.util.Base64.getDecoder().decode(userInfo.getProfileImage());
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Invalid Base64 image data: " + e.getMessage());
+                    // Keep imageBytes as null if Base64 is invalid
+                }
+            }
+
+            int rowsAffected = jdbcTemplate.update(sql,
+                userInfo.getFirstName(),
+                userInfo.getLastName(),
+                userInfo.getEmail(),
+                userInfo.getPhoneNum(),
+                userInfo.getNid(),
+                imageBytes, // Store raw bytes in BLOB, not Base64 string
+                userInfo.getGender(),
+                userInfo.getAddress(),
+                userInfo.getBirthRegNum(),
+                userInfo.getUserId()
+            );
+
+            if (rowsAffected == 0) {
+                throw new RuntimeException("User not found or no changes made");
+            }
+        } catch (DataAccessException e) {
+            System.err.println("Error updating user profile: " + e.getMessage());
+            if (e.getMessage().contains("unique constraint")) {
+                if (e.getMessage().contains("EMAIL")) {
+                    throw new RuntimeException("Email already exists");
+                } else if (e.getMessage().contains("PHONENUM")) {
+                    throw new RuntimeException("Phone number already exists");
+                } else if (e.getMessage().contains("NID")) {
+                    throw new RuntimeException("NID already exists");
+                } else if (e.getMessage().contains("BIRTH_REG_NUM")) {
+                    throw new RuntimeException("Birth registration number already exists");
+                }
+            }
+            throw new RuntimeException("Error updating profile: " + e.getMessage());
+        }
+    }
+
     private String generateUserId() {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder sb = new StringBuilder(10);

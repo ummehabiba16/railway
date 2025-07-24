@@ -73,6 +73,8 @@ public class InvoiceService {
         if (invoice == null || invoice.getBookingId() == null || invoice.getBookingId().isEmpty()) {
             throw new NoDataFoundException("Invalid invoice data.");
         }
+        String bookingId = invoice.getBookingId();
+        invoiceRepository.deleteByBookingId(bookingId); // delete existing invoice if any
         return invoiceRepository.save(invoice);
     }
 

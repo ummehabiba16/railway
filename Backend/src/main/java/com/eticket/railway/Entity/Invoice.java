@@ -23,6 +23,10 @@ public class Invoice {
 
     private double total;
 
+    public Invoice() {
+        // Default constructor
+    }
+
     
 
     public Invoice(String invoiceId, String bookingId, double baseFare, double vat, double serviceCharge,

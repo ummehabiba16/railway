@@ -108,7 +108,7 @@ function Navbar() {
             </>
           )}
           
-          {/* Show My Bookings and Logout only when user IS logged in */}
+          {/* Show My Bookings, Profile and Logout only when user IS logged in */}
           {isLoggedIn && (
             <>
               <li className="nav-item">
@@ -117,6 +117,14 @@ function Navbar() {
                   onClick={() => navigate("/bookings")}
                 >
                   My bookings
+                </button>
+              </li>
+              <li className="nav-item">
+                <button
+                  className="btn btn-outline-light mx-1 my-1"
+                  onClick={() => navigate("/user/profile")}
+                >
+                  Profile
                 </button>
               </li>
               <li className="nav-item">
