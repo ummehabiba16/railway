@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.eticket.railway.DTO.UserRegisterDTO;
+import com.eticket.railway.DTO.UserTypeDTO;
 
 @Repository
 public class USER_INFO_REPOSITORY {
@@ -271,6 +272,67 @@ public class USER_INFO_REPOSITORY {
                 }
             }
             throw new RuntimeException("Error updating profile: " + e.getMessage());
+        }
+    }
+
+    public UserTypeDTO getUserTypeInfo(String userId) {
+        String sql = """
+            SELECT 
+                FIRSTNAME || ' ' || LASTNAME AS FULLNAME,
+                CASE 
+                    WHEN FLOOR(MONTHS_BETWEEN(SYSDATE, DATE_OF_BIRTH) / 12) >= 18 THEN 'A'
+                    ELSE 'C'
+                END AS TYPE
+            FROM USER_INFO
+            WHERE USERID = ?
+        """;
+
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                UserTypeDTO userType = new UserTypeDTO();
+                userType.setFullName(rs.getString("FULLNAME"));
+                userType.setType(rs.getString("TYPE"));
+                return userType;
+            }, userId);
+        } catch (Exception e) {
+            System.err.println("Error getting user type info: " + e.getMessage());
+            throw new RuntimeException("User not found");
+        }
+    }
+
+    public String getBanStatus(String userId) {
+        String sql = """
+            SELECT 
+            CASE 
+                WHEN MAX(BOOKINGTIME) > CURRENT_TIMESTAMP - INTERVAL '5' MINUTE THEN
+                    LPAD(
+                        FLOOR(
+                            (300 - EXTRACT(SECOND FROM (CURRENT_TIMESTAMP - MAX(BOOKINGTIME))) - EXTRACT(MINUTE FROM (CURRENT_TIMESTAMP - MAX(BOOKINGTIME))) * 60 - EXTRACT(HOUR FROM (CURRENT_TIMESTAMP - MAX(BOOKINGTIME))) * 3600) / 60
+                        ), 
+                        1, '0'
+                    ) || ':' || 
+                    LPAD(
+                        MOD(
+                            FLOOR(300 - EXTRACT(SECOND FROM (CURRENT_TIMESTAMP - MAX(BOOKINGTIME))) - EXTRACT(MINUTE FROM (CURRENT_TIMESTAMP - MAX(BOOKINGTIME))) * 60 - EXTRACT(HOUR FROM (CURRENT_TIMESTAMP - MAX(BOOKINGTIME))) * 3600), 
+                            60
+                        ), 
+                        2, '0'
+                    )
+                ELSE
+                    'NOT_BANNED'
+            END AS TIME_REMAINING
+        FROM BOOKING
+        WHERE USERID = ?
+        """;
+
+
+        try {
+            String result = jdbcTemplate.queryForObject(sql, String.class, userId);
+            System.out.println("DEBUG: Ban check for user " + userId + " - Result: " + result);
+            return result != null ? result : "NOT_BANNED";
+        } catch (Exception e) {
+            System.err.println("Error checking ban status for user: " + userId + " - " + e.getMessage());
+            return "NOT_BANNED"; // User not banned or doesn't exist
         }
     }
 

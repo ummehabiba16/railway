@@ -2,6 +2,7 @@ import React from "react";
 import { useEffect } from "react";
 import { useState } from "react";
 import { useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "./navBar";
 import api from "../api";
 import jsPDF from 'jspdf';
@@ -10,6 +11,7 @@ import Barcode from 'react-barcode';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function MyBookings() {
+  const navigate = useNavigate();
   const [bookings, setBooking] = useState(null);
   const [showDetails, setShowDetails] = useState({});
   const [ticketDetails, setTicketDetails] = useState({});
@@ -21,6 +23,8 @@ function MyBookings() {
   const [selectedBookingForRefund, setSelectedBookingForRefund] = useState(null);
   const [refundAmount, setRefundAmount] = useState(0);
   const [loadingRefundAmount, setLoadingRefundAmount] = useState(false);
+  const [holdTimes, setHoldTimes] = useState({});
+  const [timeRemaining, setTimeRemaining] = useState({});
   const ticketRef = useRef();
 
   // Notification functions
@@ -61,6 +65,8 @@ function MyBookings() {
             checkRefundEligibility(booking.bookingId);
           } else if (booking.status === 'RefundPgr') {
             checkRefundStatus(booking.bookingId);
+          } else if (booking.status === 'PENDING') {
+            fetchHoldTime(booking.bookingId);
           }
         });
       } catch (error) {
@@ -70,6 +76,59 @@ function MyBookings() {
 
     fetchBookings();
   }, []);
+
+  const fetchHoldTime = async (bookingId) => {
+    try {
+      const response = await api.get("/booking/holdtime", {
+        params: { bookingId }
+      });
+      setHoldTimes(prev => ({ ...prev, [bookingId]: response.data.holdTime }));
+    } catch (error) {
+      console.error("Error fetching hold time:", error);
+    }
+  };
+
+  // Timer effect for pending bookings
+  useEffect(() => {
+    const intervals = {};
+
+    Object.keys(holdTimes).forEach(bookingId => {
+      const holdTime = holdTimes[bookingId];
+      if (holdTime) {
+        intervals[bookingId] = setInterval(() => {
+          const now = new Date();
+          const holdDateTime = new Date(holdTime.replace(' ', 'T'));
+          const timeDiff = holdDateTime.getTime() - now.getTime();
+
+          if (timeDiff <= 0) {
+            setTimeRemaining(prev => ({ ...prev, [bookingId]: "EXPIRED" }));
+            // Update booking status to FAILED in local state
+            setBooking(prevBookings => 
+              prevBookings.map(booking => 
+                booking.bookingId === bookingId 
+                  ? { ...booking, status: 'FAILED' }
+                  : booking
+              )
+            );
+            clearInterval(intervals[bookingId]);
+          } else {
+            const hoursLeft = Math.floor(timeDiff / (1000 * 60 * 60));
+            const minutesLeft = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+            const secondsLeft = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            
+            setTimeRemaining(prev => ({ 
+              ...prev, 
+              [bookingId]: `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`
+            }));
+          }
+        }, 1000);
+      }
+    });
+
+    return () => {
+      Object.values(intervals).forEach(interval => clearInterval(interval));
+    };
+  }, [holdTimes]);
 
   // Periodic check for RefundPgr bookings
   useEffect(() => {
@@ -396,6 +455,10 @@ function MyBookings() {
         return 'bg-success text-white';
       case 'FAILED':
         return 'bg-danger text-white';
+      case 'RefundPgr':
+        return 'bg-info text-white';
+      case 'Refunded':
+        return 'bg-primary text-white';
       default:
         return 'bg-secondary text-white';
     }
@@ -558,12 +621,35 @@ function MyBookings() {
                       
                       <div className="d-flex gap-2">
                         {booking.status === 'PENDING' && (
-                          <button
-                            onClick={() => handlePayNow(booking.bookingId)}
-                            className="btn btn-success btn-sm flex-fill"
-                          >
-                            Pay Now
-                          </button>
+                          <>
+                            {timeRemaining[booking.bookingId] && timeRemaining[booking.bookingId] !== "EXPIRED" && (
+                              <div className="d-flex flex-column align-items-start w-100">
+                                <div className="alert alert-warning mb-2 w-100" role="alert">
+                                  <div className="d-flex justify-content-between align-items-center">
+                                    <div>
+                                      <i className="fas fa-clock me-2"></i>
+                                      <strong>Complete booking within:</strong>
+                                    </div>
+                                    <span className="badge bg-dark fs-6">{timeRemaining[booking.bookingId]}</span>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => navigate(`/booking/${booking.bookingId}`)}
+                                  className="btn btn-primary btn-sm flex-fill"
+                                >
+                                  Complete Booking
+                                </button>
+                              </div>
+                            )}
+                            {(!timeRemaining[booking.bookingId] || timeRemaining[booking.bookingId] === "EXPIRED") && (
+                              <div className="text-center w-100">
+                                <div className="alert alert-danger mb-2" role="alert">
+                                  <i className="fas fa-exclamation-triangle me-2"></i>
+                                  Booking time expired
+                                </div>
+                              </div>
+                            )}
+                          </>
                         )}
                         
                         {booking.status === 'SUCCESSFUL' && (
@@ -630,6 +716,16 @@ function MyBookings() {
                               {refundStatus[booking.bookingId] && (
                                 <div>Amount: ৳{refundStatus[booking.bookingId].refundAmount}</div>
                               )}
+                            </small>
+                          </div>
+                        )}
+
+                        {booking.status === 'FAILED' && (
+                          <div className="alert alert-danger mb-0 py-2 text-center">
+                            <small>
+                              <i className="fas fa-times-circle me-2"></i>
+                              <strong>Booking Failed</strong>
+                              <div>No action available</div>
                             </small>
                           </div>
                         )}

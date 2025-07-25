@@ -34,7 +34,7 @@ public class TicketRepository {
         String sql = "SELECT BookingId FROM TICKET WHERE TicketId = ?";
         return jdbcTemplate.queryForObject(sql, String.class, ticketId);
     }
-
+    // PAYMENTID IS THERE MEANS INVOICE AND PAYMENT IS DONE, NO LEFT JOIN REQUIRED
     public List<TicketDetailsDTO> findByPaymentId(String paymentId) {
         String sql = """     
             SELECT  T.BOOKINGID,
@@ -145,8 +145,8 @@ public class TicketRepository {
             JOIN TRAIN TR ON(C.TRAINID = TR.TRAINID)
             JOIN BOOKING B ON(T.BOOKINGID = B.BOOKINGID)
             JOIN USER_INFO U ON(B.USERID = U.USERID)
-            JOIN INVOICE I ON(B.BOOKINGID = I.BOOKINGID)
-            JOIN PAYMENT P ON(P.INVOICEID = I.INVOICEID)
+            LEFT JOIN INVOICE I ON(B.BOOKINGID = I.BOOKINGID)
+            LEFT JOIN PAYMENT P ON(P.INVOICEID = I.INVOICEID)
             JOIN STATION FS ON (FS.STATIONID = SA.FROMSTATIONID)
             JOIN STATION TS ON (TS.STATIONID = SA.TOSTATIONID)
             JOIN ROUTE R ON(R.FROMSTATIONID = SA.FROMSTATIONID AND R.TRAINID = C.TRAINID)

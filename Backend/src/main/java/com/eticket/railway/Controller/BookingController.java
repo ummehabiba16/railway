@@ -114,5 +114,17 @@ public class BookingController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
         }
     }
+
+    @GetMapping("/booking/holdtime")
+    public ResponseEntity<?> getBookingHoldTime(@RequestParam String bookingId) {
+        try {
+            String holdTime = bookingService.getBookingHoldTime(bookingId);
+            return ResponseEntity.ok(java.util.Map.of("holdTime", holdTime));
+        } catch (NoDataFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No hold time found for the booking");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
+        }
+    }
     
 }

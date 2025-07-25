@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../api"; // your axios instance
+import Navbar from "../components/navBar";
 
 const BookingDetails = () => {
   const { bookingId } = useParams();
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState([]);
   const [passengerDetails, setPassengerDetails] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [invoice, setInvoice] = useState(null);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+  const [userTypeInfo, setUserTypeInfo] = useState(null);
+  const [holdTime, setHoldTime] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState("");
 
   useEffect(() => {
     const fetchBookingDetails = async () => {
@@ -22,21 +27,106 @@ const BookingDetails = () => {
         console.log(tickets);
 
         // Initialize passenger details state
-        setPassengerDetails(
-          response.data.map((ticket) => ({
-            ticketId: ticket.ticketId,
-            passengerName: "",
-            passengerType: "A", // default to Adult
-            fare: ticket.fare,
-          }))
-        );
+        const initialPassengerDetails = response.data.map((ticket) => ({
+          ticketId: ticket.ticketId,
+          passengerName: "",
+          passengerType: "A", // default to Adult
+          fare: ticket.fare,
+        }));
+        setPassengerDetails(initialPassengerDetails);
       } catch (err) {
         console.error("Error fetching booking details:", err);
       }
     };
 
+    const fetchUserTypeInfo = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
+        if (userId) {
+          const response = await api.get(`/user/type/${userId}`);
+          setUserTypeInfo(response.data);
+          console.log("User type info:", response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching user type info:", err);
+      }
+    };
+
+    const fetchHoldTime = async () => {
+      try {
+        const response = await api.get("/booking/holdtime", {
+          params: { bookingId },
+        });
+        console.log("=== FETCH HOLD TIME DEBUG ===");
+        console.log("API Response:", response.data);
+        console.log("Hold Time Value:", response.data.holdTime);
+        console.log("Hold Time Type:", typeof response.data.holdTime);
+        setHoldTime(response.data.holdTime);
+        console.log("Hold time set to:", response.data.holdTime);
+      } catch (err) {
+        console.error("Error fetching hold time:", err);
+      }
+    };
+
     fetchBookingDetails();
+    fetchUserTypeInfo();
+    fetchHoldTime();
   }, [bookingId]);
+
+  // Auto-fill first passenger details when both userTypeInfo and passengerDetails are available
+  useEffect(() => {
+    if (userTypeInfo && passengerDetails.length > 0 && !passengerDetails[0].passengerName) {
+      const updated = [...passengerDetails];
+      updated[0] = {
+        ...updated[0],
+        passengerName: userTypeInfo.fullName,
+        passengerType: userTypeInfo.type
+      };
+      setPassengerDetails(updated);
+      console.log("Auto-filled first passenger:", updated[0]);
+    }
+  }, [userTypeInfo, passengerDetails]);
+
+  // Timer effect to update remaining time
+  useEffect(() => {
+    if (!holdTime) return;
+
+    const updateTimer = () => {
+      const now = new Date();
+      
+      // Parse the holdTime in format 'YYYY-MM-DD HH24:MI:SS'
+      const holdDateTime = new Date(holdTime.replace(' ', 'T')); // Convert to ISO format for parsing
+
+      console.log("=== TIMER DEBUG ===");
+      console.log("Hold time string:", holdTime);
+      console.log("Parsed hold time:", holdDateTime);
+      console.log("Current time:", now);
+      console.log("Hold time valid?", !isNaN(holdDateTime.getTime()));
+      
+      const timeDiff = holdDateTime.getTime() - now.getTime();
+      console.log("Time difference (ms):", timeDiff);
+      console.log("Time difference (minutes):", Math.floor(timeDiff / (1000 * 60)));
+
+      if (timeDiff <= 0) {
+        console.log("TIMER EXPIRED - Setting timeRemaining to EXPIRED");
+        setTimeRemaining("EXPIRED");
+        return;
+      }
+
+      const hoursLeft = Math.floor(timeDiff / (1000 * 60 * 60));
+      const minutesLeft = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+      const secondsLeft = Math.floor((timeDiff % (1000 * 60)) / 1000);
+
+      const timeString = `${hoursLeft.toString().padStart(2, '0')}:${minutesLeft.toString().padStart(2, '0')}:${secondsLeft.toString().padStart(2, '0')}`;
+      console.log("Setting timeRemaining to:", timeString);
+      setTimeRemaining(timeString);
+    };
+
+    updateTimer(); // Initial call
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [holdTime]);
 
   const handlePassengerChange = (index, field, value) => {
     const updated = [...passengerDetails];
@@ -128,13 +218,51 @@ const BookingDetails = () => {
   };
 
   return (
+    <>
+    <Navbar/>
     <div className="container mt-4">
-      <h3 className="mb-4">Please Enter Passenger Details</h3>
+      {/* Timer Display */}
+          {timeRemaining && (
+            <div className={`alert ${timeRemaining === "EXPIRED" ? "alert-danger" : "alert-warning"} text-center mb-4 ${
+              timeRemaining !== "EXPIRED" && timeRemaining.startsWith("00:") && parseInt(timeRemaining.split(":")[1]) < 10 ? "timer-urgent" : ""
+            }`} role="alert">
+              <div className="d-flex justify-content-center align-items-center">
+                <i className="fas fa-clock me-2"></i>
+                <strong>
+                  {timeRemaining === "EXPIRED" ? (
+                    <div>
+                      <div className="mb-2">⏰ Booking Hold Time EXPIRED! Try again.</div>
+                      <button 
+                        className="btn btn-primary btn-sm"
+                        onClick={() => navigate('/search')}
+                      >
+                        <i className="fas fa-redo me-2"></i>
+                        Try Again
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      ⏰ Complete your booking within: {" "}
+                      <span className="badge bg-dark fs-6 ms-2">{timeRemaining}</span>
+                    </>
+                  )}
+                </strong>
+              </div>
+            </div>
+          )}
+
+          <h3 className="mb-4">Please Enter Passenger Details</h3>
       <p className="text-muted small mb-4">Note: Child fares will be adjusted in invoice</p>
 
       {tickets.map((ticket, index) => (
         <div key={ticket.ticketId} className="card mb-3">
           <div className="card-body">
+            {index === 0 && userTypeInfo && (
+              <div className="alert alert-info alert-dismissible fade show" role="alert">
+                <i className="fas fa-info-circle me-2"></i>
+                <strong>Primary Passenger:</strong> Your details have been auto-filled. You can modify them if needed.
+              </div>
+            )}
             <p><strong>Coach:</strong> {ticket.coachId}</p>
             <p><strong>Fare:</strong> {ticket.fare}</p>
             <p><strong>Seat Number:</strong> {ticket.seatNum}</p>
@@ -149,6 +277,7 @@ const BookingDetails = () => {
                 onChange={(e) =>
                   handlePassengerChange(index, "passengerName", e.target.value)
                 }
+                disabled={timeRemaining === "EXPIRED"}
               />
               {errors[`${index}_passengerName`] && (
                 <p className="text-danger mt-1 mb-0">{errors[`${index}_passengerName`]}</p>
@@ -163,6 +292,7 @@ const BookingDetails = () => {
                 onChange={(e) =>
                   handlePassengerChange(index, "passengerType", e.target.value)
                 }
+                disabled={timeRemaining === "EXPIRED"}
               >
                 <option value="A">Adult</option>
                 <option value="C">Child</option>
@@ -178,9 +308,10 @@ const BookingDetails = () => {
       <button 
         className="btn btn-primary mt-3" 
         onClick={handleGenerateInvoice}
-        disabled={isSubmitting}
+        disabled={isSubmitting || timeRemaining === "EXPIRED"}
       >
-        {isSubmitting ? 'Generating Invoice...' : 'Generate Invoice'}
+        {isSubmitting ? 'Generating Invoice...' : 
+         timeRemaining === "EXPIRED" ? 'Booking Expired' : 'Generate Invoice'}
       </button>
 
       {/* Invoice Display Card */}
@@ -235,7 +366,36 @@ const BookingDetails = () => {
           </div>
         </div>
       )}
+      
+      {/* Custom CSS for timer effects */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes pulse {
+            0% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.7;
+            }
+            100% {
+              opacity: 1;
+            }
+          }
+          
+          .timer-urgent {
+            animation: pulse 1s infinite;
+            border: 2px solid #dc3545 !important;
+          }
+          
+          .timer-urgent .badge {
+            background-color: #dc3545 !important;
+            animation: pulse 1s infinite;
+          }
+        `
+      }} />
+      
     </div>
+    </>
   );
 };
 

@@ -78,5 +78,12 @@ public class BookingService {
         return userBookings;
     }
 
+    public String getBookingHoldTime(String bookingId) {
+        String holdTime = bookingRepository.findHoldTime(bookingId);
+        if (holdTime == null || holdTime.isEmpty()) {
+            throw new NoDataFoundException("No hold time found for the given booking ID");
+        }
+        return holdTime;
+    }
 
 }

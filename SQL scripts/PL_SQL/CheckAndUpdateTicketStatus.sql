@@ -15,7 +15,7 @@ BEGIN
     IF v_status = 'AVAILABLE' THEN
         UPDATE TICKET
         SET TICKETSTATUS = 'IN PROGRESS',
-            BOOKINGHOLDUNTIL = SYSTIMESTAMP + NUMTODSINTERVAL(v_bookingHoldTime, 'MINUTE')
+            BOOKINGHOLDUNTIL = CURRENT_TIMESTAMP + NUMTODSINTERVAL(v_bookingHoldTime, 'MINUTE')
         WHERE TICKETID = p_ticket_id;
     END IF;
 
@@ -38,4 +38,5 @@ END;
 --     DBMS_OUTPUT.PUT_LINE(V_STATUS);
 -- END;
 -- /
+
 

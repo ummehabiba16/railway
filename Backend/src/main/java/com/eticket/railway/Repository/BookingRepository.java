@@ -1,15 +1,11 @@
 package com.eticket.railway.Repository;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
-import com.eticket.railway.DTO.ClassDTO;
 import com.eticket.railway.DTO.UserBookingResponse;
 
 @Repository
@@ -38,7 +34,21 @@ public class BookingRepository {
             throw new RuntimeException("Error fetching userBookings", e);
 
         }
+    }
 
+    public String findHoldTime(String bookingId) {
+        String sql = """
+                SELECT TO_CHAR(MIN(BOOKINGHOLDUNTIL), 'YYYY-MM-DD HH24:MI:SS')AS HOLDTIME
+                FROM TICKET
+                WHERE BOOKINGID = ?
+                """;
+        
+        try {
+            return jdbcTemplate.queryForObject(sql, String.class, bookingId);
+        } catch (DataAccessException e) {
+            System.err.println("Error fetching hold time for booking: " + bookingId + " - " + e.getMessage());
+            throw new RuntimeException("Error fetching booking hold time", e);
+        }
     }
 
 }

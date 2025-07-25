@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.eticket.railway.Entity.USER_INFO;
 import com.eticket.railway.Repository.USER_INFO_REPOSITORY;
+import com.eticket.railway.Service.UserInfoService;
 
 @RestController
 @RequestMapping("/api")
@@ -27,9 +28,11 @@ import com.eticket.railway.Repository.USER_INFO_REPOSITORY;
 public class USERINFOCONTROLLER {
 
     private final USER_INFO_REPOSITORY userInfoRepository;
+    private final UserInfoService userInfoService;
 
-    public USERINFOCONTROLLER(USER_INFO_REPOSITORY userInfoRepository) {
+    public USERINFOCONTROLLER(USER_INFO_REPOSITORY userInfoRepository, UserInfoService userInfoService) {
         this.userInfoRepository = userInfoRepository;
+        this.userInfoService = userInfoService;
     }
 
     @GetMapping("/user/profile/{userId}")
@@ -50,6 +53,57 @@ public class USERINFOCONTROLLER {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Internal server error", "message", "Error retrieving profile"));
+        }
+    }
+
+    @GetMapping("/user/type/{userId}")
+    public ResponseEntity<?> getUserTypeInfo(@PathVariable String userId) {
+        System.out.println("=== GET USER TYPE INFO ===");
+        System.out.println("User ID: " + userId);
+
+        try {
+            com.eticket.railway.DTO.UserTypeDTO userType = userInfoService.getUserTypeInfo(userId);
+            System.out.println("User type info retrieved for user: " + userId);
+            return ResponseEntity.ok(userType);
+        } catch (RuntimeException e) {
+            System.err.println("Error getting user type info: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "User not found", "message", e.getMessage()));
+        } catch (Exception e) {
+            System.err.println("Unexpected error getting user type info: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Internal server error", "message", "Error retrieving user type info"));
+        }
+    }
+
+    @GetMapping("/user/banned/{userId}")
+    public ResponseEntity<?> getUserBannedStatus(@PathVariable String userId) {
+        System.out.println("=== GET USER BAN STATUS ===");
+        System.out.println("User ID: " + userId);
+
+        try {
+            String banStatus = userInfoService.getBanStatus(userId);
+            System.out.println("Ban status for user " + userId + ": " + banStatus);
+            
+            if (!"NOT_BANNED".equals(banStatus)) {
+                // User is banned - return remaining time
+                return ResponseEntity.ok(Map.of(
+                    "bannedUntil", banStatus,
+                    "status", "BANNED"
+                ));
+            } else {
+                // User is not banned
+                return ResponseEntity.ok(Map.of(
+                    "bannedUntil", "NOT_BANNED",
+                    "status", "NOT_BANNED"
+                ));
+            }
+        } catch (Exception e) {
+            System.err.println("Unexpected error getting user ban status: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Internal server error", "message", "Error retrieving ban status"));
         }
     }
 

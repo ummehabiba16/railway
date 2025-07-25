@@ -11,6 +11,9 @@ function SearchTrainForm() {
   const [bookingResponse, setBookingResponse] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [currCoach, setCurrCoach] = useState(null);
+  const [showBanPopup, setShowBanPopup] = useState(false);
+  const [bannedUntil, setBannedUntil] = useState(null);
+  const [banTimeRemaining, setBanTimeRemaining] = useState("");
 
   const [fromStations, setFromStations] = useState([]);
   const [toStations, setToStations] = useState([]);
@@ -52,6 +55,108 @@ function SearchTrainForm() {
     fetchInitialData();
   }, []);
 
+  const checkBannedStatus = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        const response = await api.get(`/user/banned/${userId}`);
+        const banStatus = response.data.status;
+        const bannedTime = response.data.bannedUntil;
+        
+        console.log("Ban status response:", response.data);
+        
+        // Check if user is banned using the status field
+        if (banStatus === "BANNED") {
+          // User is banned - bannedTime contains the remaining time in MM:SS format
+          setBannedUntil(bannedTime);
+          setShowBanPopup(true);
+          return true; // User is banned
+        } else {
+          // User is not banned
+          setBannedUntil(null);
+          setShowBanPopup(false);
+          setBanTimeRemaining("");
+          return false; // User is not banned
+        }
+      } else {
+        // No user ID
+        setBannedUntil(null);
+        setShowBanPopup(false);
+        setBanTimeRemaining("");
+        return false; // User is not banned
+      }
+      return false; // No user ID or not banned
+    } catch (err) {
+      console.error("Error checking banned status:", err);
+      return false;
+    }
+  };
+
+  // Ban timer effect - bannedUntil is now in MM:SS format
+  useEffect(() => {
+    if (!bannedUntil || !showBanPopup || bannedUntil === "NOT_BANNED") return;
+
+    // bannedUntil is already in MM:SS format from the backend
+    setBanTimeRemaining(bannedUntil);
+
+    // Set up a countdown timer that decreases the time every second
+    const updateBanTimer = () => {
+      // Parse the current time remaining (MM:SS format)
+      const timeString = banTimeRemaining || bannedUntil;
+      
+      // Skip if it's "NOT_BANNED"
+      if (timeString === "NOT_BANNED") {
+        setBanTimeRemaining("");
+        setShowBanPopup(false);
+        setBannedUntil(null);
+        return;
+      }
+      
+      // Check if the format is valid MM:SS
+      if (!timeString || !timeString.includes(':')) {
+        console.error("Invalid time format:", timeString);
+        setBanTimeRemaining("00:00");
+        return;
+      }
+      
+      const [minutes, seconds] = timeString.split(':').map(Number);
+      
+      // Check if parsing was successful
+      if (isNaN(minutes) || isNaN(seconds)) {
+        console.error("Failed to parse time:", timeString);
+        setBanTimeRemaining("00:00");
+        return;
+      }
+      
+      let totalSeconds = minutes * 60 + seconds;
+      
+      totalSeconds -= 1;
+      
+      if (totalSeconds <= 0) {
+        setBanTimeRemaining("UNBAN_READY");
+        // Auto-close popup after 2 seconds when ban expires
+        setTimeout(() => {
+          setShowBanPopup(false);
+          setBannedUntil(null);
+          setBanTimeRemaining("");
+        }, 2000);
+        return;
+      }
+
+      const newMinutes = Math.floor(totalSeconds / 60);
+      const newSeconds = totalSeconds % 60;
+      const newTimeString = `${newMinutes}:${newSeconds.toString().padStart(2, '0')}`;
+      
+      setBanTimeRemaining(newTimeString);
+      setBannedUntil(newTimeString); // Update the bannedUntil state as well
+    };
+
+    // Start the countdown after 1 second
+    const banInterval = setInterval(updateBanTimer, 1000);
+
+    return () => clearInterval(banInterval);
+  }, [bannedUntil, showBanPopup, banTimeRemaining]);
+
   const handleDateChange = (d) => {
     setSearchData((prev) => ({ ...prev, date: d }));
   };
@@ -83,6 +188,15 @@ function SearchTrainForm() {
   };
 
   const handleBookNow = async (trainId, classId) => {
+    // Check if user is banned first
+    const isBanned = await checkBannedStatus();
+    if (isBanned) {
+      console.log("User is banned, stopping booking process");
+      return; // Stop execution if user is banned, popup will be shown
+    }
+
+    console.log("User is not banned, proceeding with booking");
+
     try {
       const formattedDate = searchData.date
         ? searchData.date.toLocaleDateString("en-GB").replace(/\//g, "-")
@@ -194,6 +308,13 @@ function SearchTrainForm() {
       return;
     }
 
+    // Check if user is banned before proceeding with booking
+    const isBanned = await checkBannedStatus();
+    if (isBanned) {
+      console.log("User is banned, cannot complete booking");
+      return; // Stop execution if user is banned, popup will be shown
+    }
+
     try {
       const userId = localStorage.getItem("userId");
 
@@ -231,6 +352,13 @@ function SearchTrainForm() {
     if (ticket.ticketStatus !== "AVAILABLE") {
       alert("This seat is not available for booking.");
       return;
+    }
+
+    // Check if user is banned before allowing seat selection
+    const isBanned = await checkBannedStatus();
+    if (isBanned) {
+      console.log("User is banned, cannot select seat");
+      return; // Stop execution if user is banned, popup will be shown
     }
   
     // Check if seat is already selected
@@ -318,6 +446,68 @@ function SearchTrainForm() {
 
   return (
     <div className="container mt-4">
+      {/* Ban Popup Modal */}
+      {showBanPopup && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header bg-danger text-white">
+                <h5 className="modal-title">
+                  <i className="fas fa-ban me-2"></i>
+                  Booking Suspended
+                </h5>
+              </div>
+              <div className="modal-body text-center">
+                <div className="mb-4">
+                  <i className="fas fa-exclamation-triangle text-warning" style={{ fontSize: '3rem' }}></i>
+                </div>
+                <h6 className="text-danger mb-3">You cannot book now!</h6>
+                <p className="mb-3">You are temporarily suspended from booking for 5 minutes.</p>
+                
+                {banTimeRemaining && banTimeRemaining !== "UNBAN_READY" && (
+                  <div className="alert alert-warning">
+                    <strong>Time remaining: </strong>
+                    <span className="badge bg-danger fs-6">{banTimeRemaining}</span>
+                  </div>
+                )}
+                
+                {banTimeRemaining === "UNBAN_READY" && (
+                  <div className="alert alert-success">
+                    <i className="fas fa-check-circle me-2"></i>
+                    You can now try booking again!
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer justify-content-center">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary me-2"
+                  onClick={() => setShowBanPopup(false)}
+                >
+                  <i className="fas fa-times me-2"></i>
+                  Close
+                </button>
+                
+                <button 
+                  type="button" 
+                  className={`btn btn-primary ${banTimeRemaining !== "UNBAN_READY" ? "disabled" : ""}`}
+                  disabled={banTimeRemaining !== "UNBAN_READY"}
+                  onClick={() => {
+                    // Clear ban state and close popup
+                    setShowBanPopup(false);
+                    setBannedUntil(null);
+                    setBanTimeRemaining("");
+                  }}
+                >
+                  <i className="fas fa-redo me-2"></i>
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h2 className="mb-4 text-center">Search Trains</h2>
 
       <form className="row g-3" onSubmit={handleSubmit}>
