@@ -84,6 +84,8 @@ public class SecurityConfig {
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(registry -> {
             registry.requestMatchers("/api/register", "/api/login", "/api/public/**", "/api/payment/success").permitAll();
+            registry.requestMatchers("/api/admin/**").hasRole("ADMIN");
+            registry.requestMatchers("/api/station-master/**").hasRole("STATION_MASTER");
             registry.requestMatchers("/api/search", "/api/me").authenticated();
             registry.anyRequest().authenticated();
         })

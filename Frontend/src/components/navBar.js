@@ -5,12 +5,15 @@ import api from "../api";
 function Navbar() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState('');
 
   // Check if user is logged in on component mount and when localStorage changes
   useEffect(() => {
     const checkAuthStatus = () => {
       const token = localStorage.getItem("token");
+      const role = localStorage.getItem("userRole");
       setIsLoggedIn(!!token); // Convert to boolean
+      setUserRole(role || '');
     };
 
     checkAuthStatus();
@@ -31,6 +34,7 @@ function Navbar() {
       // Clear token and userId from localStorage
       localStorage.removeItem("token");
       localStorage.removeItem("userId");
+      localStorage.removeItem("userRole");
       
       // Update the logged in state
       setIsLoggedIn(false);
@@ -119,14 +123,32 @@ function Navbar() {
                   My bookings
                 </button>
               </li>
-              <li className="nav-item">
-                <button
-                  className="btn btn-outline-light mx-1 my-1"
-                  onClick={() => navigate("/user/profile")}
-                >
-                  Profile
-                </button>
-              </li>
+              
+              {/* Role-based Profile Button */}
+              {userRole === 'USER' && (
+                <li className="nav-item">
+                  <button
+                    className="btn btn-outline-light mx-1 my-1"
+                    onClick={() => navigate("/user/profile")}
+                  >
+                    Profile
+                  </button>
+                </li>
+              )}
+              
+              {userRole === 'STATION_MASTER' && (
+                <li className="nav-item">
+                  <button
+                    className="btn btn-outline-light mx-1 my-1"
+                    onClick={() => navigate("/master/profile")}
+                  >
+                    Profile
+                  </button>
+                </li>
+              )}
+              
+              {/* Admin users don't get a profile button */}
+              
               <li className="nav-item">
                 <button
                   className="btn btn-outline-light mx-1 my-1"

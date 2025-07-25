@@ -170,7 +170,7 @@ function Profile() {
         formData.append('profileImage', profileImage);
       }
 
-      const response = await api.put('/user/profile', formData, {
+      const response = await api.put("/user/profile", formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

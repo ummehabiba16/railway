@@ -36,14 +36,41 @@ function Login() {
       console.log(credentials);
       console.log(JSON.stringify(credentials));
 
-      const response = await api.post('/login', credentials); // Change endpoint as needed
+      const response = await api.post("/login", credentials); // Change endpoint as needed
       setSuccess('Login successful!');
       setError('');
+      
       const { userId, token } = response.data;
+      
+      // Store token and user ID in localStorage
       localStorage.setItem('userId', userId);
       localStorage.setItem('token', token);
-      console.log(response.data); // You might store token in localStorage here
-      navigate('/'); //navigate to home page ???
+      
+      // Decode token to get role and store it securely
+      // For better security, you could use sessionStorage instead of localStorage for sensitive data
+      try {
+        // Extract role from JWT token payload
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        localStorage.setItem('userRole', payload.role);
+        console.log('User role:', payload.role);
+      } catch (err) {
+        console.error('Error decoding token:', err);
+      }
+      
+      console.log(response.data);
+      
+      // Navigate based on role
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role === 'ADMIN') {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/');
+        }
+      } catch (err) {
+        console.error('Error navigating based on role:', err);
+        navigate('/');
+      }
     } catch (err) {
       setError('Login failed. Check credentials.'+ err);
       console.error(err);

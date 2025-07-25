@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Repository;
 
 import com.eticket.railway.DTO.UserRegisterDTO;
@@ -14,11 +15,12 @@ import com.eticket.railway.DTO.UserTypeDTO;
 
 @Repository
 public class USER_INFO_REPOSITORY {
-
+    
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    public Optional<UserRegisterDTO> findById(String id) {
+    
+    // Create a local instance to avoid circular dependency
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();    public Optional<UserRegisterDTO> findById(String id) {
         String sql = """
             SELECT USER_INFO.UserId, FirstName, LastName, Email, PhoneNum, NID, Birth_Reg_Num, Gender, Address, Date_of_Birth, PasswordHash
             FROM USER_INFO 
@@ -169,7 +171,7 @@ public class USER_INFO_REPOSITORY {
     }
 
     private String hashPassword(String rawPassword) {
-        return org.springframework.security.crypto.bcrypt.BCrypt.hashpw(rawPassword, org.springframework.security.crypto.bcrypt.BCrypt.gensalt());
+        return passwordEncoder.encode(rawPassword);
     }
 
     private String generateUniqueUserId() {
@@ -344,5 +346,283 @@ public class USER_INFO_REPOSITORY {
             sb.append(chars.charAt(random.nextInt(chars.length())));
         }
         return sb.toString();
+    }
+
+    public java.util.List<com.eticket.railway.DTO.StationWithMasterDTO> getAllStationsWithMasters() {
+        String sql = """
+            SELECT ST.StationId, ST.Name, 
+                   (CASE ST.isOnline WHEN 'Y' THEN 'ONLINE' ELSE 'NOT ONLINE' END) as OnlineStatus, 
+                   ST.Location, ST.Division, ST.ContactNum, ST.Status, 
+                   SM.Name as MasterName, SM.Email, SM.PhoneNum, LC.PasswordHash
+            FROM STATION ST 
+            LEFT OUTER JOIN STATION_MASTER SM ON (ST.StationId = SM.StationId)
+            LEFT OUTER JOIN LOGIN_CREDENTIALS LC ON (LC.MasterId = SM.MasterId)
+            ORDER BY ST.Name
+            """;
+        
+        try {
+            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                com.eticket.railway.DTO.StationWithMasterDTO station = new com.eticket.railway.DTO.StationWithMasterDTO();
+                station.setStationId(rs.getString("StationId"));
+                station.setStationName(rs.getString("Name"));
+                station.setIsOnline(rs.getString("OnlineStatus"));
+                station.setLocation(rs.getString("Location"));
+                station.setDivision(rs.getString("Division"));
+                station.setContactNum(rs.getString("ContactNum"));
+                station.setStatus(rs.getString("Status"));
+                station.setMasterName(rs.getString("MasterName"));
+                station.setMasterEmail(rs.getString("Email"));
+                station.setMasterPhone(rs.getString("PhoneNum"));
+                
+                // Convert passwordHash to a placeholder password for display
+                String passwordHash = rs.getString("PasswordHash");
+                if (passwordHash != null && !passwordHash.trim().isEmpty()) {
+                    // For security, don't return actual password, just indicate it exists
+                    station.setPassword("password123"); // This could be made configurable
+                } else {
+                    station.setPassword(null);
+                }
+                
+                return station;
+            });
+        } catch (DataAccessException e) {
+            System.err.println("Error fetching stations with masters: " + e.getMessage());
+            throw new RuntimeException("Failed to fetch stations data", e);
+        }
+    }
+
+    public void updateStationField(String stationId, String fieldName, String value) {
+        String sql = "";
+        switch (fieldName.toLowerCase()) {
+            case "stationname":
+                sql = "UPDATE STATION SET NAME = ? WHERE STATIONID = ?";
+                break;
+            case "isonline":
+                sql = "UPDATE STATION SET ISONLINE = ? WHERE STATIONID = ?";
+                break;
+            case "location":
+                sql = "UPDATE STATION SET LOCATION = ? WHERE STATIONID = ?";
+                break;
+            case "division":
+                sql = "UPDATE STATION SET DIVISION = ? WHERE STATIONID = ?";
+                break;
+            case "contactnum":
+                sql = "UPDATE STATION SET CONTACTNUM = ? WHERE STATIONID = ?";
+                break;
+            case "status":
+                sql = "UPDATE STATION SET STATUS = ? WHERE STATIONID = ?";
+                break;
+            case "mastername":
+                sql = "UPDATE STATION_MASTER SET NAME = ? WHERE STATIONID = ?";
+                break;
+            case "masteremail":
+                sql = "UPDATE STATION_MASTER SET EMAIL = ? WHERE STATIONID = ?";
+                break;
+            case "masterphone":
+                sql = "UPDATE STATION_MASTER SET PHONENUM = ? WHERE STATIONID = ?";
+                break;
+            case "password":
+                // Update password in LOGIN_CREDENTIALS table
+                sql = "UPDATE LOGIN_CREDENTIALS SET PASSWORDHASH = ? WHERE MASTERID = (SELECT MASTERID FROM STATION_MASTER WHERE STATIONID = ?)";
+                // Hash the password before storing (in production, use BCrypt)
+                value = hashPassword(value);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid field name: " + fieldName);
+        }
+        
+        jdbcTemplate.update(sql, value, stationId);
+    }
+
+    public String getStationMasterId(String stationId) {
+        try {
+            String sql = "SELECT MASTERID FROM STATION_MASTER WHERE STATIONID = ?";
+            return jdbcTemplate.queryForObject(sql, String.class, stationId);
+        } catch (Exception e) {
+            return null; // No station master found
+        }
+    }
+
+    public void createStationMaster(String masterId, String name, String stationId, String email, String phone, String password) {
+        try {
+            // Validate required fields
+            if (name == null || name.trim().isEmpty()) {
+                throw new RuntimeException("Station master name is required");
+            }
+            if (stationId == null || stationId.trim().isEmpty()) {
+                throw new RuntimeException("Station ID is required");
+            }
+            if (email == null || email.trim().isEmpty()) {
+                throw new RuntimeException("Email is required");
+            }
+            if (phone == null || phone.trim().isEmpty()) {
+                throw new RuntimeException("Phone number is required");
+            }
+            if (password == null || password.trim().isEmpty()) {
+                throw new RuntimeException("Password is required");
+            }
+            
+            // Validate email format
+            if (!email.matches("^[\\w\\.-]+@[\\w\\.-]+\\.[\\w]+$")) {
+                throw new RuntimeException("Invalid email format");
+            }
+            
+            // Validate phone format
+            if (!phone.matches("^\\d{10,14}$")) {
+                throw new RuntimeException("Phone number must be 10-14 digits");
+            }
+            
+            // Check if station exists
+            if (!stationIdExists(stationId)) {
+                throw new RuntimeException("Station does not exist: " + stationId);
+            }
+            
+            // Check if station already has a master
+            String existingMasterId = getStationMasterId(stationId);
+            if (existingMasterId != null) {
+                throw new RuntimeException("Station already has a master assigned");
+            }
+            
+            // Check if email already exists
+            String checkEmailSql = "SELECT COUNT(*) FROM STATION_MASTER WHERE EMAIL = ?";
+            Integer emailCount = jdbcTemplate.queryForObject(checkEmailSql, Integer.class, email);
+            if (emailCount != null && emailCount > 0) {
+                throw new RuntimeException("Email already exists");
+            }
+            
+            // Hash the password before storing
+            String hashedPassword = hashPassword(password);
+            
+            // Insert into STATION_MASTER
+            String insertMasterSql = "INSERT INTO STATION_MASTER (MASTERID, NAME, STATIONID, EMAIL, PHONENUM) VALUES (?, ?, ?, ?, ?)";
+            jdbcTemplate.update(insertMasterSql, masterId, name, stationId, email, phone);
+            
+            // Insert into LOGIN_CREDENTIALS
+            String insertLoginSql = "INSERT INTO LOGIN_CREDENTIALS (LOGINID, MASTERID, LOGINTYPE, PASSWORDHASH, ROLE) VALUES (?, ?, 'STATION_MASTER', ?, 'STATION_MASTER')";
+            jdbcTemplate.update(insertLoginSql, masterId, masterId, hashedPassword);
+            
+        } catch (Exception e) {
+            if (e instanceof RuntimeException) {
+                throw e;
+            }
+            throw new RuntimeException("Failed to create station master: " + e.getMessage());
+        }
+    }
+
+    public String generateStationMasterId() {
+        try {
+            String sql = "SELECT 'SM' || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(MASTERID, 3))), 0) + 1, 4, '0') FROM STATION_MASTER WHERE MASTERID LIKE 'SM%'";
+            return jdbcTemplate.queryForObject(sql, String.class);
+        } catch (Exception e) {
+            return "SM0001"; // Default if no masters exist
+        }
+    }
+
+    public String generateMasterId() {
+        return generateStationMasterId();
+    }
+
+    public String generateStationId(String stationName) {
+        try {
+            // Generate abbreviation from station name (max 6 chars)
+            String baseId = stationName.toUpperCase()
+                    .replaceAll("[^A-Z]", "") // Remove non-alphabetic characters
+                    .substring(0, Math.min(stationName.replaceAll("[^A-Z]", "").length(), 4)); // Take first 4 letters
+            
+            if (baseId.length() < 2) {
+                baseId = stationName.toUpperCase().substring(0, Math.min(stationName.length(), 4));
+            }
+            
+            // Check if base ID exists, if so add numbers
+            String finalId = baseId;
+            int counter = 1;
+            
+            while (stationIdExists(finalId)) {
+                finalId = baseId + String.format("%02d", counter);
+                if (finalId.length() > 6) {
+                    // If too long, truncate base and try again
+                    baseId = baseId.substring(0, Math.max(1, baseId.length() - 1));
+                    finalId = baseId + String.format("%02d", counter);
+                }
+                counter++;
+                if (counter > 99) {
+                    throw new RuntimeException("Cannot generate unique station ID");
+                }
+            }
+            
+            return finalId;
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating station ID: " + e.getMessage());
+        }
+    }
+
+    private boolean stationIdExists(String stationId) {
+        try {
+            String sql = "SELECT COUNT(*) FROM STATION WHERE STATIONID = ?";
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, stationId);
+            return count != null && count > 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public void createStation(String stationId, String name, String isOnline, String location, 
+                             String division, String contactNum, String status) {
+        try {
+            // Validate station ID uniqueness first
+            if (stationIdExists(stationId)) {
+                throw new RuntimeException("Station ID already exists: " + stationId);
+            }
+            
+            // Validate required fields
+            if (name == null || name.trim().isEmpty()) {
+                throw new RuntimeException("Station name is required");
+            }
+            
+            String sql = "INSERT INTO STATION (STATIONID, NAME, ISONLINE, LOCATION, DIVISION, CONTACTNUM, STATUS) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            jdbcTemplate.update(sql, stationId, name, isOnline, location, division, contactNum, status);
+        } catch (Exception e) {
+            if (e instanceof RuntimeException) {
+                throw e;
+            }
+            throw new RuntimeException("Failed to create station: " + e.getMessage());
+        }
+    }
+
+    // Dashboard Statistics Methods
+    public Integer getTotalTrainCount() {
+        try {
+            String sql = "SELECT COUNT(TRAINID) FROM TRAIN";
+            return jdbcTemplate.queryForObject(sql, Integer.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get total train count: " + e.getMessage());
+        }
+    }
+
+    public Integer getTotalUserCount() {
+        try {
+            String sql = "SELECT COUNT(USERID) FROM USER_INFO";
+            return jdbcTemplate.queryForObject(sql, Integer.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get total user count: " + e.getMessage());
+        }
+    }
+
+    public Integer getTotalBookingCount() {
+        try {
+            String sql = "SELECT COUNT(BOOKINGID) FROM BOOKING WHERE BOOKINGTIME IS NOT NULL";
+            return jdbcTemplate.queryForObject(sql, Integer.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get total booking count: " + e.getMessage());
+        }
+    }
+
+    public Integer getTodaysSuccessfulBookingCount() {
+        try {
+            String sql = "SELECT COUNT(*) FROM BOOKING WHERE TRUNC(BOOKINGTIME) = TRUNC(SYSDATE) AND STATUS = 'SUCCESSFUL'";
+            return jdbcTemplate.queryForObject(sql, Integer.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get today's successful booking count: " + e.getMessage());
+        }
     }
 }

@@ -12,6 +12,11 @@ import PaymentCancelled from "./pages/paymentCancelled";
 import PaymentFailed from "./pages/paymentFailed";
 import MyBookings from "./components/MyBookings";
 import Profile from "./pages/profile";
+import ProfileStationMaster from "./pages/profileStationMaster";
+import AdminDashboard from "./pages/adminDashboard";
+import AdminStations from "./pages/adminStations";
+import AdminTrains from "./pages/adminTrains";
+import AddTrain from "./pages/addTrain";
 
 function App() {
     return (
@@ -29,6 +34,11 @@ function App() {
             <Route path="/payment/failed" element={<PaymentFailed />} />
             <Route path="/bookings" element={<MyBookings />} />
             <Route path="/user/profile" element={<Profile />} />
+            <Route path="/master/profile" element={<ProfileStationMaster />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/stations" element={<AdminStations />} />
+            <Route path="/admin/trains" element={<AdminTrains />} />
+            <Route path="/admin/trains/add" element={<AddTrain />} />
         </Routes>
     );
 }
