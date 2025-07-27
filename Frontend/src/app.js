@@ -17,6 +17,9 @@ import AdminDashboard from "./pages/adminDashboard";
 import AdminStations from "./pages/adminStations";
 import AdminTrains from "./pages/adminTrains";
 import AddTrain from "./pages/addTrain";
+import MyBookingsStationMaster from "./components/MyBookingsStationMaster";
+import BookingDetailsStationMaster from "./pages/bookingStationMaster";
+import PaymentSuccessStationMaster from "./components/PaymentSuccessStationMaster";
 
 function App() {
     return (
@@ -29,10 +32,14 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/booking/:bookingId" element={<BookingDetails />} />
+            <Route path="/booking/stationMaster/:bookingId" element={<BookingDetailsStationMaster />} />
+
             <Route path="/payment/success/:paymentId" element={<PaymentSuccess />} />
+            <Route path="/payment/stationMaster/success/:paymentId" element={<PaymentSuccessStationMaster />} />
             <Route path="/payment/cancelled" element={<PaymentCancelled />} />
             <Route path="/payment/failed" element={<PaymentFailed />} />
             <Route path="/bookings" element={<MyBookings />} />
+            <Route path="/bookings/stationMaster" element={<MyBookingsStationMaster />} />
             <Route path="/user/profile" element={<Profile />} />
             <Route path="/master/profile" element={<ProfileStationMaster />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />

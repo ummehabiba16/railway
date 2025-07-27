@@ -40,6 +40,16 @@ public class PaymentRepository {
             throw new RuntimeException("Error COMPLETING payment", e);
         }
     }
+
+    public void updateForStationMaster(String invoiceId, String nid) {
+        String sql = "CALL COMPLETE_BOOKING_BY_SM(?, ?)"; // or "{call COMPLETE_BOOKING(?)}" if you're using CallableStatement directly
+
+        try {
+            jdbcTemplate.update(sql, invoiceId, nid);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Error COMPLETING payment", e);
+        }
+    }
     
 
     

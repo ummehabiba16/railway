@@ -1,0 +1,14 @@
+CREATE OR REPLACE PROCEDURE Release_Tickets_By_Booking_Id(I_BookingId in VARCHAR2) IS
+BEGIN
+
+    UPDATE BOOKING
+    SET STATUS = 'FAILED'
+    WHERE BOOKINGID = I_BookingId;
+    -- Step 1: Release expired tickets
+    UPDATE TICKET
+    SET TICKETSTATUS = 'AVAILABLE'
+    WHERE TICKETSTATUS = 'IN PROGRESS'
+    AND BOOKINGID = I_BookingId;
+    COMMIT;
+END;
+/

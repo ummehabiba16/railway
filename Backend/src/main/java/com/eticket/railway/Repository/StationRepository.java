@@ -30,6 +30,17 @@ public class StationRepository {
         });
     }
 
+    public List<StationDTO> findAllFromStationsStationMaster() {
+        String sql = "SELECT StationId, Name FROM STATION WHERE status = 'ACTIVE'";
+
+        return jdbcTemplate.query(sql, new RowMapper<StationDTO>() {
+            @Override
+            public StationDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+                return new StationDTO(rs.getString("StationId"), rs.getString("Name"));
+            }
+        });
+    }
+
     public List<StationDTO> findAllToStations() {
         String sql = "SELECT StationId, Name FROM STATION WHERE status = 'ACTIVE'";
         try{

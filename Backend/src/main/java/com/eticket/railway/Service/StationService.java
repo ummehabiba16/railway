@@ -24,6 +24,14 @@ public class StationService {
         return fromStations;
     }
 
+    public List<StationDTO> getFromStationsStationMaster() {
+        List<StationDTO> fromStations = stationRepository.findAllFromStationsStationMaster();
+        if (fromStations == null || fromStations.isEmpty()) {
+            throw new NoDataFoundException("No 'from' stations found");
+        }
+        return fromStations;
+    }
+
     public List<StationDTO> getToStations() {
         List<StationDTO> toStations = stationRepository.findAllToStations();
         if (toStations == null || toStations.isEmpty()) {

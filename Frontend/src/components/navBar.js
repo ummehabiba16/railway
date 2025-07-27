@@ -115,14 +115,26 @@ function Navbar() {
           {/* Show My Bookings, Profile and Logout only when user IS logged in */}
           {isLoggedIn && (
             <>
-              <li className="nav-item">
-                <button
-                  className="btn btn-outline-light mx-1 my-1"
-                  onClick={() => navigate("/bookings")}
-                >
-                  My bookings
-                </button>
-              </li>
+              {/* Show different button text and route based on user role */}
+              {userRole === 'STATION_MASTER' ? (
+                <li className="nav-item">
+                  <button
+                    className="btn btn-outline-light mx-1 my-1"
+                    onClick={() => navigate("/bookings/stationMaster")}
+                  >
+                    Refund
+                  </button>
+                </li>
+              ) : (
+                <li className="nav-item">
+                  <button
+                    className="btn btn-outline-light mx-1 my-1"
+                    onClick={() => navigate("/bookings")}
+                  >
+                    My bookings
+                  </button>
+                </li>
+              )}
               
               {/* Role-based Profile Button */}
               {userRole === 'USER' && (

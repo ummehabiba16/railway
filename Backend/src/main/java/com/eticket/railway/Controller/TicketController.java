@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eticket.railway.DTO.TicketDetailsDTO;
@@ -41,6 +42,8 @@ public class TicketController {
                     .body("An error occurred: " + e.getMessage());
         }
     }
+
+    
     @PostMapping("/ticket/booking")
     public ResponseEntity<?> getTicketDetailsByBookingId(@RequestBody Map<String, String> request) {
         try {
@@ -52,6 +55,42 @@ public class TicketController {
             return ResponseEntity.ok(ticket);
         } catch (NoDataFoundException e) {
             return ResponseEntity.status(HttpStatus.OK).body(Collections.emptyList());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyUser(@RequestBody Map<String, Object> request) {
+        try {
+            String type = (String) request.get("type");
+            String value = (String) request.get("value");
+            Integer numberOfTickets = (Integer) request.get("numberOfTickets");
+            
+            // Call the verification service
+            Map<String, Object> verificationResult = ticketService.verifyTicketLimit(type, value, numberOfTickets);
+            
+            return ResponseEntity.ok(verificationResult);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An error occurred: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/release")
+    public ResponseEntity<?> releaseTickets(@RequestParam String bookingId) {
+        try {
+            boolean success = ticketService.releaseTicketsByBookingId(bookingId);
+            
+            if (success) {
+                return ResponseEntity.ok().build(); // 200 OK
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Failed to release tickets");
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

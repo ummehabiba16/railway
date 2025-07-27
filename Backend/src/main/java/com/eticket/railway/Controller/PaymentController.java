@@ -202,6 +202,61 @@ public class PaymentController {
         }
     }
 
+
+    @PostMapping("/stationMaster")
+    public ResponseEntity<?> handlePaymentStationMaster(@RequestBody Map<String, String> request) {
+        System.out.println("=== STATION MASTER PAYMENT RECEIVED ===");
+        System.out.println("Station Master payment request: " + request);
+        
+        try {
+            String invoiceId = request.get("invoiceId");
+            String nidValue = request.get("id");
+
+            System.out.println("Processing Station Master payment - Invoice: " + invoiceId + ", NID: " + nidValue);
+
+            if (invoiceId == null || invoiceId.isEmpty()) {
+                System.err.println("Missing invoiceId in payment request");
+                return ResponseEntity.badRequest().body(Map.of("error", "Invoice ID is required"));
+            }
+
+            if (nidValue == null || nidValue.isEmpty()) {
+                System.err.println("Missing NID/BRN value in payment request");
+                return ResponseEntity.badRequest().body(Map.of("error", "NID/BRN value is required"));
+            }
+
+            // Generate unique payment ID for station master payment
+            String paymentId = "SM_" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 12);
+
+            // Save payment record
+            Payment payment = new Payment();
+            payment.setPaymentId(paymentId);
+            payment.setTrxId("SM_" + System.currentTimeMillis()); // Station Master transaction ID
+            payment.setPaymentMode("SM"); // Station Master payment mode
+            payment.setStatus("SUCCESSFUL");
+            payment.setInvoiceId(invoiceId);
+
+            paymentRepository.save(payment);
+            System.out.println("Payment saved successfully: " + paymentId);
+
+            // Update booking for station master with NID
+            paymentRepository.updateForStationMaster(invoiceId, nidValue);
+            System.out.println("Booking updated for Station Master with NID: " + nidValue);
+
+            // Return success response with paymentId
+            return ResponseEntity.ok(Map.of(
+                "success", true, 
+                "message", "Payment processed successfully by Station Master",
+                "paymentId", paymentId
+            ));
+
+        } catch (Exception e) {
+            System.err.println("Error processing Station Master payment: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Payment processing failed: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/fail")
     public ResponseEntity<String> handleFail(@RequestParam Map<String, String> params) {
         System.out.println("=== PAYMENT FAIL CALLBACK RECEIVED ===");

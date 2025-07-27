@@ -3,11 +3,16 @@ package com.eticket.railway.Repository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.Types;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.CallableStatementCreator;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -196,6 +201,56 @@ public class TicketRepository {
 
         } catch (DataAccessException e) {
             throw new RuntimeException("Error fetching ticket Details", e);
+        }
+    }
+
+    public Map<String, Object> checkTicketLimit(String type, String value, Integer numberOfTickets) {
+        String sql = "{ ? = call check_ticket_limit(?, ?, ?) }";
+        try {
+            return jdbcTemplate.execute((CallableStatementCreator) con -> {
+                CallableStatement cs = con.prepareCall(sql);
+                cs.registerOutParameter(1, Types.VARCHAR); // Return value
+                cs.setString(2, type);                     // ID_TYPE (NID or BRN)
+                cs.setString(3, value);                    // ID_VALUE (NID/BRN value)
+                cs.setInt(4, numberOfTickets);             // NUM_TICKETS
+                return cs;
+            }, (cs) -> {
+                cs.execute();
+                String result = cs.getString(1); // Get the return value ('Y' or 'N')
+                
+                Map<String, Object> response = new HashMap<>();
+                
+                // Parse the result from the Oracle function
+                if ("Y".equals(result)) {
+                    response.put("verified", "Y");
+                    response.put("message", "User verified successfully");
+                    response.put("name", null); // You can add name lookup if needed
+                } else {
+                    response.put("verified", "N");
+                    response.put("message", "User has reached booking limits or is banned");
+                }
+                
+                return response;
+            });
+        } catch (Exception e) {
+            throw new RuntimeException("Error calling verification procedure", e);
+        }
+    }
+
+    public boolean releaseTicketsByBookingId(String bookingId) {
+        String sql = "{ call Release_Tickets_By_Booking_Id(?) }";
+        try {
+            jdbcTemplate.execute((CallableStatementCreator) con -> {
+                CallableStatement cs = con.prepareCall(sql);
+                cs.setString(1, bookingId); // I_BookingId parameter
+                return cs;
+            }, (cs) -> {
+                cs.execute();
+                return null;
+            });
+            return true; // If no exception thrown, procedure executed successfully
+        } catch (Exception e) {
+            throw new RuntimeException("Error calling release tickets procedure", e);
         }
     }
 

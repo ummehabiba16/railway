@@ -1,13 +1,16 @@
 package com.eticket.railway.Repository;
 
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.CallableStatementCreator;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.eticket.railway.Entity.Refund;
 
@@ -170,6 +173,71 @@ public class RefundRepository {
             return jdbcTemplate.queryForObject(sql, new RefundRowMapper(), refundRefId);
         } catch (DataAccessException e) {
             return null; // Return null if not found
+        }
+    }
+
+    /**
+     * Release refunded tickets by calling Oracle procedure
+     * This method calls the Release_REFUNDED_Tickets_By_BookingId procedure
+     */
+    public boolean releaseRefundedTicketsByBookingId(String bookingId) {
+        String sql = "{ call Release_REFUNDED_Tickets_By_BookingId(?) }";
+        try {
+            jdbcTemplate.execute((CallableStatementCreator) con -> {
+                CallableStatement cs = con.prepareCall(sql);
+                cs.setString(1, bookingId); // I_BookingId parameter
+                return cs;
+            }, (cs) -> {
+                cs.execute();
+                return null;
+            });
+            return true; // If no exception thrown, procedure executed successfully
+        } catch (Exception e) {
+            throw new RuntimeException("Error calling release refunded tickets procedure for booking: " + bookingId, e);
+        }
+    }
+
+    /**
+     * Atomically save refund, update booking status to RefundPgr, and release tickets  
+     * This method ensures all three operations succeed or all fail
+     */
+    @Transactional
+    public void saveRefundAndUpdateToRefundPgrAtomic(Refund refund, String bookingId) {
+        try {
+            // 1. Save the refund
+            save(refund);
+            
+            // 2. Update booking status to RefundPgr
+            updateBookingStatus(bookingId, "RefundPgr");
+            
+            // 3. Release refunded tickets
+            releaseRefundedTicketsByBookingId(bookingId);
+            
+        } catch (Exception e) {
+            // Transaction will be rolled back automatically due to @Transactional
+            throw new RuntimeException("Failed to complete refund operations atomically for booking: " + bookingId, e);
+        }
+    }
+
+    /**
+     * Atomically save refund, update booking status, and release tickets
+     * This method ensures all three operations succeed or all fail
+     */
+    @Transactional
+    public void saveRefundAndUpdateStatusAtomic(Refund refund, String bookingId, String status) {
+        try {
+            // 1. Save the refund
+            save(refund);
+            
+            // 2. Update booking status
+            updateBookingStatus(bookingId, status);
+            
+            // 3. Release refunded tickets
+            releaseRefundedTicketsByBookingId(bookingId);
+            
+        } catch (Exception e) {
+            // Transaction will be rolled back automatically due to @Transactional
+            throw new RuntimeException("Failed to complete refund operations atomically for booking: " + bookingId, e);
         }
     }
 

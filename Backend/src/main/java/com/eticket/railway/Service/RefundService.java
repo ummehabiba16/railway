@@ -112,8 +112,10 @@ public class RefundService {
                 // Update refund status based on response
                 if ("success".equalsIgnoreCase(refundResponse.getStatus())) {
                     refundRepository.updateRefundStatus(paymentId, refundRequest.getBookingId(), "Processing", refundResponse.getRefundRefId());
-                    // Update booking status to RefundPgr
+                    // Use atomic method to update booking status to RefundPgr and release tickets
+                    // Note: Since refund is already saved, we just need to update status and release
                     refundRepository.updateBookingStatus(refundRequest.getBookingId(), "RefundPgr");
+                    refundRepository.releaseRefundedTicketsByBookingId(refundRequest.getBookingId());
                 } else {
                     refundRepository.updateRefundStatus(paymentId, refundRequest.getBookingId(), "Failed", null);
                 }
@@ -126,6 +128,73 @@ public class RefundService {
         } catch (Exception e) {
             System.err.println("Error initiating refund: " + e.getMessage());
             throw new RuntimeException("Refund initiation failed: " + e.getMessage());
+        }
+    }
+
+
+    public RefundResponse initiateRefundByStationMaster(RefundRequest refundRequest) {
+        try {
+            // Get bank transaction ID and payment ID from booking ID
+            String bankTranId = refundRepository.getBankTranIdByBookingId(refundRequest.getBookingId());
+            String paymentId = refundRepository.getPaymentIdByBookingId(refundRequest.getBookingId());
+
+            if (paymentId == null) {
+                throw new NoDataFoundException("No payment found for booking ID: " + refundRequest.getBookingId());
+            }
+
+            // Check if refund already exists
+            Refund existingRefund = refundRepository.findByPaymentIdAndBookingId(paymentId, refundRequest.getBookingId());
+            if (existingRefund != null) {
+                throw new RuntimeException("Refund already requested for this booking");
+            }
+
+            // Calculate refund amount based on policy
+            int refundAmount = calculateRefundAmount(refundRequest.getBookingId());
+            
+            if (refundAmount <= 0) {
+                throw new RuntimeException("No refund available for this booking (less than 6 hours before departure)");
+            }
+
+            // Generate unique refund transaction ID
+            String refundTransId = "REFUND" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 10);
+
+            System.out.println("Station Master initiating refund with transaction ID: " + refundTransId);
+            System.out.println("Bank Transaction ID: " + bankTranId);
+            System.out.println("Booking ID: " + refundRequest.getBookingId());
+            System.out.println("Calculated Refund Amount: " + refundAmount);
+
+            // Save refund request to database first
+            Refund refund = new Refund();
+            refund.setPaymentId(paymentId);
+            refund.setBookingId(refundRequest.getBookingId());
+            refund.setRefundAmount(refundAmount);
+            refund.setRefundStatus("Refunded"); // Station Master directly refunds
+            refund.setRefundTransId(refundTransId);
+            refund.setBankTranId(bankTranId);
+            refund.setRefundRefId("SM_" + refundTransId); // Station Master reference
+
+            // Save refund and update booking status atomically
+            refundRepository.saveRefundAndUpdateStatusAtomic(refund, refundRequest.getBookingId(), "Refunded");
+
+            // Create successful response for Station Master refund
+            RefundResponse response = new RefundResponse();
+            response.setStatus("success");
+            response.setApiConnect("DONE");
+            response.setRefundRefId("SM_" + refundTransId);
+            response.setRefundAmount(refundAmount);
+
+            System.out.println("Station Master refund completed successfully: " + refundTransId);
+            return response;
+
+        } catch (Exception e) {
+            System.err.println("Error initiating Station Master refund: " + e.getMessage());
+            
+            RefundResponse errorResponse = new RefundResponse();
+            errorResponse.setStatus("failed");
+            errorResponse.setApiConnect("ERROR");
+            errorResponse.setErrorReason(e.getMessage());
+            
+            throw new RuntimeException("Station Master refund initiation failed: " + e.getMessage());
         }
     }
 

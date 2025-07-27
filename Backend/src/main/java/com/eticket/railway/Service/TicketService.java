@@ -1,6 +1,7 @@
 package com.eticket.railway.Service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
@@ -28,6 +29,14 @@ public class TicketService {
             throw new NoDataFoundException("No ticket found for the given booking ID");
         }
         return ticketDetails;
+    }
+
+    public Map<String, Object> verifyTicketLimit(String type, String value, Integer numberOfTickets) {
+        return ticketRepository.checkTicketLimit(type, value, numberOfTickets);
+    }
+
+    public boolean releaseTicketsByBookingId(String bookingId) {
+        return ticketRepository.releaseTicketsByBookingId(bookingId);
     }
     
 }

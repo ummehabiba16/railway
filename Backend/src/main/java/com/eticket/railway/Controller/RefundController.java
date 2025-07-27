@@ -63,6 +63,33 @@ public class RefundController {
         }
     }
 
+
+    @PostMapping("/initiate/stationMaster")
+    public ResponseEntity<?> initiateRefundByStationMaster(@RequestBody RefundRequest refundRequest) {
+        System.out.println("=== STATION MASTER REFUND INITIATION REQUEST ===");
+        System.out.println("Booking ID: " + refundRequest.getBookingId());
+        System.out.println("Refund Remarks: " + refundRequest.getRefundRemarks());
+        
+        try {
+            // Call service to handle station master refund logic
+            RefundResponse refundResponse = refundService.initiateRefundByStationMaster(refundRequest);
+            
+            System.out.println("Station Master refund initiated successfully for booking: " + refundRequest.getBookingId());
+            return ResponseEntity.ok(refundResponse);
+
+        } catch (NoDataFoundException e) {
+            System.err.println("Booking not found: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Booking not found: " + e.getMessage());
+        } catch (RuntimeException e) {
+            System.err.println("Refund initiation error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Refund initiation failed: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Unexpected error during refund initiation: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
+        }
+    }
+
     @GetMapping("/status")
     public ResponseEntity<?> getRefundStatus(@RequestParam String refundRefId) {
         System.out.println("=== REFUND STATUS QUERY ===");

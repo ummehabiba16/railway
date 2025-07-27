@@ -51,4 +51,20 @@ public class BookingRepository {
         }
     }
 
+    public boolean updateBooking(String nid, String bookingId) {
+        String sql = """
+                UPDATE BOOKING
+                SET SoldBy = 'S', NID = ?
+                WHERE BOOKINGID = ?
+                """;
+        
+        try {
+            int rowsAffected = jdbcTemplate.update(sql, nid, bookingId);
+            return rowsAffected > 0;
+        } catch (DataAccessException e) {
+            System.err.println("Error updating booking: " + bookingId + " - " + e.getMessage());
+            throw new RuntimeException("Error updating booking", e);
+        }
+    }
+
 }
