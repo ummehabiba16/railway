@@ -3,6 +3,9 @@ package com.eticket.railway.Repository;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -238,6 +241,35 @@ public class RefundRepository {
         } catch (Exception e) {
             // Transaction will be rolled back automatically due to @Transactional
             throw new RuntimeException("Failed to complete refund operations atomically for booking: " + bookingId, e);
+        }
+    }
+
+    public List<Map<String, Object>> getBookingsForAdminRefund(String trainId, String travelDate, String coachId) {
+        String sql = """
+            SELECT DISTINCT T.BOOKINGID, I.TOTAL
+            FROM TICKET T JOIN BOOKING B 
+            ON(T.BOOKINGID = B.BOOKINGID)
+            JOIN INVOICE I ON (I.BOOKINGID = B.BOOKINGID)
+            WHERE SOLDBY = 'U' AND 
+                TicketId IN 
+                (SELECT T.TicketId 
+                FROM TICKET T JOIN SEAT_ALLOCATION SA ON(T.TRAINSEATID = SA.TRAINSEATID)
+                JOIN SEAT S ON(S.SEATID = SA.SEATID)
+                WHERE SA.TRAINID = ? AND
+                T.TRAVELDATE = TO_DATE(?, 'DD-MM-YYYY') AND
+                S.COACHID = ? AND
+                T.TicketStatus = 'BOOKED')
+            """;
+        
+        try {
+            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                Map<String, Object> booking = new HashMap<>();
+                booking.put("bookingId", rs.getString("BOOKINGID"));
+                booking.put("total", rs.getDouble("TOTAL"));
+                return booking;
+            }, trainId, travelDate, coachId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Error fetching bookings for admin refund", e);
         }
     }
 

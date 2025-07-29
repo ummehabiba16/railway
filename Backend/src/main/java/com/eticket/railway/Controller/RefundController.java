@@ -1,5 +1,7 @@
 package com.eticket.railway.Controller;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -213,6 +215,86 @@ public class RefundController {
                 "message", e.getMessage(),
                 "refundAmount", 0
             ));
+        }
+    }
+
+    @PostMapping("/admin/process")
+    public ResponseEntity<Map<String, Object>> processAdminRefund(@RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+        
+        System.out.println("=== ADMIN REFUND INITIATION REQUEST ===");
+        
+        try {
+            String trainId = request.get("trainId");
+            String travelDate = request.get("travelDate");
+            String coachId = request.get("coachId");
+            
+            System.out.println("Train ID: " + trainId);
+            System.out.println("Travel Date: " + travelDate);
+            System.out.println("Coach ID: " + coachId);
+            
+            if (trainId == null || trainId.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Train ID is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            if (travelDate == null || travelDate.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Travel date is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            if (coachId == null || coachId.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Coach selection is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Process refunds for all bookings matching the criteria
+            List<com.eticket.railway.DTO.RefundResponse> refundResponses = refundService.processAdminRefunds(trainId, travelDate, coachId);
+            
+            // Count successful and failed refunds
+            long successCount = refundResponses.stream()
+                .filter(refund -> "success".equalsIgnoreCase(refund.getStatus()))
+                .count();
+            long failCount = refundResponses.size() - successCount;
+            
+            System.out.println("Refund processing completed - Success: " + successCount + ", Failed: " + failCount);
+            
+            String message;
+            if (successCount == refundResponses.size() && successCount > 0) {
+                message = "Cancellation and refund process completed successfully for train " + trainId + 
+                         " on " + travelDate + " (Coach: " + coachId + "). " +
+                         "All " + successCount + " refunds processed successfully and ticket status updated to CANCELLED.";
+            } else if (successCount > 0) {
+                message = "Cancellation and refund process partially completed for train " + trainId + 
+                         " on " + travelDate + " (Coach: " + coachId + "). " +
+                         "Successful refunds: " + successCount + ", Failed: " + failCount + 
+                         ". Ticket status not updated due to failed refunds.";
+            } else {
+                message = "Cancellation and refund process failed for train " + trainId + 
+                         " on " + travelDate + " (Coach: " + coachId + "). " +
+                         "No successful refunds processed.";
+            }
+            
+            response.put("success", successCount > 0);
+            response.put("message", message);
+            response.put("totalProcessed", refundResponses.size());
+            response.put("successfulRefunds", successCount);
+            response.put("failedRefunds", failCount);
+            response.put("allRefundsSuccessful", successCount == refundResponses.size() && successCount > 0);
+            response.put("ticketsCancelled", successCount == refundResponses.size() && successCount > 0);
+            response.put("refundDetails", refundResponses);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            System.err.println("Error in admin refund processing: " + e.getMessage());
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("message", "Failed to process refund: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }

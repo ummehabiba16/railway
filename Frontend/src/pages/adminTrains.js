@@ -21,6 +21,13 @@ const AdminTrains = () => {
     offDay: ''
   });
   
+  // State for expanded rows
+  const [expandedRows, setExpandedRows] = useState(new Set());
+  
+  // State for search
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredTrains, setFilteredTrains] = useState([]);
+  
   // State for stations (dropdowns)
   const [fromStations, setFromStations] = useState([]);
   const [toStations, setToStations] = useState([]);
@@ -80,6 +87,25 @@ const AdminTrains = () => {
     fetchStations();
   }, []);
 
+  // Update filtered trains when trains or search term changes
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredTrains(trains);
+    } else {
+      const filtered = trains.filter(train => 
+        train.trainId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        train.trainNum.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        train.trainName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredTrains(filtered);
+    }
+  }, [trains, searchTerm]);
+
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
   // Handle edit button click
   const handleEdit = (train) => {
     setEditingTrain(train.trainId);
@@ -90,6 +116,17 @@ const AdminTrains = () => {
       toStationId: train.toId,
       offDay: train.offDay || ''
     });
+  };
+
+  // Toggle expanded row
+  const toggleExpandedRow = (trainId) => {
+    const newExpandedRows = new Set(expandedRows);
+    if (newExpandedRows.has(trainId)) {
+      newExpandedRows.delete(trainId);
+    } else {
+      newExpandedRows.add(trainId);
+    }
+    setExpandedRows(newExpandedRows);
   };
 
   // Handle edit form input changes
@@ -180,6 +217,47 @@ const AdminTrains = () => {
           </div>
         </div>
 
+        {/* Search Bar */}
+        <div className="row mb-3">
+          <div className="col-12">
+            <div className="card">
+              <div className="card-body py-3">
+                <div className="row align-items-center">
+                  <div className="col-md-6">
+                    <div className="input-group">
+                      <span className="input-group-text">
+                        <i className="fas fa-search"></i>
+                      </span>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search trains by ID, Number, or Name..."
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                      />
+                      {searchTerm && (
+                        <button
+                          className="btn btn-outline-secondary"
+                          type="button"
+                          onClick={() => setSearchTerm('')}
+                          title="Clear search"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-md-6 text-end">
+                    <small className="text-muted">
+                      {searchTerm ? `${filteredTrains.length} of ${trains.length} trains found` : `${trains.length} total trains`}
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Error Display */}
         {error && (
           <div className="row mb-3">
@@ -200,14 +278,26 @@ const AdminTrains = () => {
             <div className="card shadow">
               <div className="card-header py-3">
                 <h6 className="m-0 font-weight-bold text-primary">
-                  All Trains ({trains.length})
+                  {searchTerm ? `Search Results (${filteredTrains.length})` : `All Trains (${trains.length})`}
                 </h6>
               </div>
               <div className="card-body">
-                {trains.length === 0 ? (
+                {filteredTrains.length === 0 ? (
                   <div className="text-center py-4">
                     <i className="fas fa-train fa-3x text-muted mb-3"></i>
-                    <p className="text-muted">No trains found</p>
+                    {searchTerm ? (
+                      <div>
+                        <p className="text-muted">No trains found matching "{searchTerm}"</p>
+                        <button 
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => setSearchTerm('')}
+                        >
+                          Clear Search
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-muted">No trains found</p>
+                    )}
                   </div>
                 ) : (
                   <div className="table-responsive">
@@ -223,8 +313,9 @@ const AdminTrains = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {trains.map((train) => (
-                          <tr key={train.trainId}>
+                        {filteredTrains.map((train) => (
+                          <React.Fragment key={train.trainId}>
+                            <tr>
                             {editingTrain === train.trainId ? (
                               // Edit mode
                               <>
@@ -300,18 +391,24 @@ const AdminTrains = () => {
                                   </select>
                                 </td>
                                 <td>
-                                  <button
-                                    className="btn btn-success btn-sm me-1"
-                                    onClick={() => handleSaveEdit(train.trainId)}
-                                  >
-                                    <i className="fas fa-save"></i>
-                                  </button>
-                                  <button
-                                    className="btn btn-secondary btn-sm"
-                                    onClick={handleCancelEdit}
-                                  >
-                                    <i className="fas fa-times"></i>
-                                  </button>
+                                  <div className="d-flex gap-1">
+                                    <button
+                                      className="btn btn-success btn-sm"
+                                      onClick={() => handleSaveEdit(train.trainId)}
+                                      title="Save Changes"
+                                    >
+                                      <i className="fas fa-save me-1"></i>
+                                      Save
+                                    </button>
+                                    <button
+                                      className="btn btn-secondary btn-sm"
+                                      onClick={handleCancelEdit}
+                                      title="Cancel"
+                                    >
+                                      <i className="fas fa-times me-1"></i>
+                                      Cancel
+                                    </button>
+                                  </div>
                                 </td>
                               </>
                             ) : (
@@ -323,17 +420,127 @@ const AdminTrains = () => {
                                 <td>{train.toStation}</td>
                                 <td>{train.offDay || 'None'}</td>
                                 <td>
-                                  <button
-                                    className="btn btn-primary btn-sm"
-                                    onClick={() => handleEdit(train)}
-                                  >
-                                    <i className="fas fa-edit me-1"></i>
-                                    Edit
-                                  </button>
+                                  <div className="d-flex gap-1">
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      onClick={() => handleEdit(train)}
+                                      title="Quick Edit"
+                                    >
+                                      <i className="fas fa-edit me-1"></i>
+                                      Edit
+                                    </button>
+                                    <button
+                                      className="btn btn-info btn-sm"
+                                      onClick={() => toggleExpandedRow(train.trainId)}
+                                      title={expandedRows.has(train.trainId) ? "Hide Details" : "View More Details & Actions"}
+                                    >
+                                      <i className={`fas fa-chevron-${expandedRows.has(train.trainId) ? 'up' : 'down'} me-1`}></i>
+                                      {expandedRows.has(train.trainId) ? 'Less' : 'More'}
+                                    </button>
+                                  </div>
                                 </td>
                               </>
                             )}
                           </tr>
+                          {/* Expanded Row */}
+                          {expandedRows.has(train.trainId) && (
+                            <tr>
+                              <td colSpan="6" className="p-0">
+                                <div className="card m-3 border-primary">
+                                  <div className="card-header bg-primary text-white">
+                                    <h6 className="mb-0">
+                                      <i className="fas fa-info-circle me-2"></i>
+                                      Train Details - {train.trainName} ({train.trainNum})
+                                    </h6>
+                                  </div>
+                                  <div className="card-body">
+                                    <div className="row">
+                                      <div className="col-md-8">
+                                        <div className="row">
+                                          <div className="col-md-6">
+                                            <div className="mb-3">
+                                              <label className="fw-bold text-muted">Train Information</label>
+                                              <div className="border rounded p-2 bg-light">
+                                                <p className="mb-1"><strong>Train ID:</strong> <span className="text-primary">{train.trainId}</span></p>
+                                                <p className="mb-1"><strong>Train Number:</strong> {train.trainNum}</p>
+                                                <p className="mb-0"><strong>Train Name:</strong> {train.trainName}</p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="col-md-6">
+                                            <div className="mb-3">
+                                              <label className="fw-bold text-muted">Route Information</label>
+                                              <div className="border rounded p-2 bg-light">
+                                                <p className="mb-1"><strong>From:</strong> {train.fromStation} <small className="text-muted">(ID: {train.fromId})</small></p>
+                                                <p className="mb-1"><strong>To:</strong> {train.toStation} <small className="text-muted">(ID: {train.toId})</small></p>
+                                                <p className="mb-0"><strong>Off Day:</strong> {train.offDay || 'None'}</p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="row">
+                                          <div className="col-12">
+                                            <div className="mb-3">
+                                              <label className="fw-bold text-muted">Status & Operations</label>
+                                              <div className="border rounded p-2 bg-light">
+                                                <p className="mb-1">
+                                                  <strong>Current Status:</strong> 
+                                                  <span className="badge bg-success ms-2">Active</span>
+                                                </p>
+                                                <p className="mb-0">
+                                                  <strong>Last Updated:</strong> 
+                                                  <span className="text-muted ms-2">{new Date().toLocaleDateString()}</span>
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="col-md-4">
+                                        <div className="mb-3">
+                                          <label className="fw-bold text-muted">Quick Actions</label>
+                                          <div className="border rounded p-3 bg-light">
+                                            <div className="d-grid gap-2">
+                                              <button
+                                                className="btn btn-info btn-sm"
+                                                onClick={() => navigate(`/admin/train/${train.trainId}`)}
+                                              >
+                                                <i className="fas fa-edit me-2"></i>
+                                                Edit More Details
+                                              </button>
+                                              <button
+                                                className="btn btn-outline-primary btn-sm"
+                                                onClick={() => handleEdit(train)}
+                                              >
+                                                <i className="fas fa-pencil-alt me-2"></i>
+                                                Quick Edit
+                                              </button>
+                                              <button
+                                                className="btn btn-outline-secondary btn-sm"
+                                                onClick={() => toggleExpandedRow(train.trainId)}
+                                              >
+                                                <i className="fas fa-chevron-up me-2"></i>
+                                                Collapse Details
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="mb-3">
+                                          <label className="fw-bold text-muted">More Options</label>
+                                          <div className="border rounded p-2 bg-light">
+                                            <small className="text-muted">
+                                              Use "Edit More Details" for comprehensive train management including schedules, routes, and advanced settings.
+                                            </small>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>

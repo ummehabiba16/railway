@@ -254,6 +254,70 @@ function AdminDashboard() {
               </div>
             </div>
           </div>
+
+          <div className="col-lg-4 col-md-6 mb-3">
+            <div className="card h-100">
+              <div className="card-body text-center">
+                <i className="fas fa-route fa-3x text-primary mb-3"></i>
+                <h5 className="card-title">Route Management</h5>
+                <p className="card-text">Add and manage train routes, stations, timings, and schedule configurations.</p>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => navigate('/admin/routes')}
+                >
+                  Manage Routes
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-lg-4 col-md-6 mb-3">
+            <div className="card h-100">
+              <div className="card-body text-center">
+                <i className="fas fa-cogs fa-3x text-warning mb-3"></i>
+                <h5 className="card-title">System Rules</h5>
+                <p className="card-text">Configure booking rules, service charges, time limits, and other system parameters.</p>
+                <button 
+                  className="btn btn-warning"
+                  onClick={() => navigate('/admin/rules')}
+                >
+                  Manage Rules
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-lg-4 col-md-6 mb-3">
+            <div className="card h-100">
+              <div className="card-body text-center">
+                <i className="fas fa-ticket-alt fa-3x text-danger mb-3"></i>
+                <h5 className="card-title">Ticket Management</h5>
+                <p className="card-text">Release tickets for all trains or specific trains, manage ticket availability and booking dates.</p>
+                <button 
+                  className="btn btn-danger"
+                  onClick={() => navigate('/admin/tickets')}
+                >
+                  Manage Tickets
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-lg-4 col-md-6 mb-3">
+            <div className="card h-100">
+              <div className="card-body text-center">
+                <i className="fas fa-undo-alt fa-3x text-secondary mb-3"></i>
+                <h5 className="card-title">Cancellation & Refund</h5>
+                <p className="card-text">Manage ticket cancellations and process refunds for specific trains, dates, and coaches.</p>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => navigate('/admin/cancellation')}
+                >
+                  Cancellation and Refund
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Recent Activity Section */}

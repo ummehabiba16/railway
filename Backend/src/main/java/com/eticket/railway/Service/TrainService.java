@@ -1,6 +1,7 @@
 package com.eticket.railway.Service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,8 +25,21 @@ public class TrainService {
         return trainRepository.findAllTrains();
     }
 
+    public TrainManagementDTO getTrainById(String trainId) {
+        if (trainId == null || trainId.trim().isEmpty()) {
+            throw new RuntimeException("Train ID is required");
+        }
+        
+        TrainManagementDTO train = trainRepository.findTrainById(trainId);
+        if (train == null) {
+            throw new RuntimeException("Train not found with ID: " + trainId);
+        }
+        
+        return train;
+    }
+
     public List<StationDTO> getFromStations() {
-        return stationRepository.findAllFromStations();
+        return stationRepository.findAllFromStationsStationMaster();
     }
 
     public List<StationDTO> getToStations() {
@@ -91,5 +105,12 @@ public class TrainService {
 
         trainRepository.createTrain(trainId, trainNum.trim(), trainName.trim(), 
                                    fromStationId, toStationId, offDay);
+    }
+
+    public List<Map<String, String>> getCoachesByTrainId(String trainId) {
+        if (trainId == null || trainId.trim().isEmpty()) {
+            throw new RuntimeException("Train ID is required");
+        }
+        return trainRepository.getCoachesByTrainId(trainId);
     }
 }

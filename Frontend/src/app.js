@@ -20,6 +20,11 @@ import AddTrain from "./pages/addTrain";
 import MyBookingsStationMaster from "./components/MyBookingsStationMaster";
 import BookingDetailsStationMaster from "./pages/bookingStationMaster";
 import PaymentSuccessStationMaster from "./components/PaymentSuccessStationMaster";
+import AdminTrainDetails from "./pages/adminTrainDetails";
+import AdminRules from "./pages/adminRules";
+import AdminTickets from "./pages/adminTickets";
+import AdminCancellation from "./pages/adminCancellation";
+import AdminRoutes from "./pages/adminRoutes";
 
 function App() {
     return (
@@ -46,6 +51,11 @@ function App() {
             <Route path="/admin/stations" element={<AdminStations />} />
             <Route path="/admin/trains" element={<AdminTrains />} />
             <Route path="/admin/trains/add" element={<AddTrain />} />
+            <Route path="/admin/train/:trainId" element={<AdminTrainDetails />} />
+            <Route path="/admin/rules" element={<AdminRules />} />
+            <Route path="/admin/tickets" element={<AdminTickets />} />
+            <Route path="/admin/cancellation" element={<AdminCancellation />} />
+            <Route path="/admin/routes" element={<AdminRoutes />} />
         </Routes>
     );
 }

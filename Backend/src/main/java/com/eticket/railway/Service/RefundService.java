@@ -2,7 +2,9 @@ package com.eticket.railway.Service;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -25,6 +27,9 @@ public class RefundService {
 
     @Autowired
     private RefundRepository refundRepository;
+    
+    @Autowired
+    private TicketService ticketService;
 
     @Value("${sslcommerz.store_id}")
     private String storeId;
@@ -131,6 +136,91 @@ public class RefundService {
         }
     }
 
+    public RefundResponse initiateAdminRefund(RefundRequest refundRequest, int totalAmount) {
+        try {
+            // Get bank transaction ID and payment ID from booking ID
+            String bankTranId = refundRepository.getBankTranIdByBookingId(refundRequest.getBookingId());
+            String paymentId = refundRepository.getPaymentIdByBookingId(refundRequest.getBookingId());
+
+            if (bankTranId == null || paymentId == null) {
+                throw new NoDataFoundException("No payment found for booking ID: " + refundRequest.getBookingId());
+            }
+
+            // Check if refund already exists
+            Refund existingRefund = refundRepository.findByPaymentIdAndBookingId(paymentId, refundRequest.getBookingId());
+            if (existingRefund != null) {
+                throw new RuntimeException("Refund already requested for this booking");
+            }
+
+            // Use the full total amount for admin refund (no deductions)
+            int refundAmount = totalAmount;
+
+            // Generate unique refund transaction ID
+            String refundTransId = "ADMIN_REFUND" + UUID.randomUUID().toString().replaceAll("-", "").substring(0, 10);
+
+            System.out.println("Initiating admin refund with transaction ID: " + refundTransId);
+            System.out.println("Bank Transaction ID: " + bankTranId);
+            System.out.println("Booking ID: " + refundRequest.getBookingId());
+            System.out.println("Admin Refund Amount (Full Total): " + refundAmount);
+
+            // Save refund request to database first
+            Refund refund = new Refund();
+            refund.setPaymentId(paymentId);
+            refund.setBookingId(refundRequest.getBookingId());
+            refund.setRefundAmount(refundAmount);
+            refund.setRefundStatus("Requested");
+            refund.setRefundTransId(refundTransId);
+            refund.setBankTranId(bankTranId);
+            refundRepository.save(refund);
+
+            // Call SSLCommerz refund API
+            String url = isLive ? liveRefundURL : sandboxRefundURL;
+            
+            UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url)
+                    .queryParam("bank_tran_id", bankTranId)
+                    .queryParam("refund_trans_id", refundTransId)
+                    .queryParam("store_id", storeId)
+                    .queryParam("store_passwd", storePassword)
+                    .queryParam("refund_amount", refundAmount)
+                    .queryParam("refund_remarks", refundRequest.getRefundRemarks())
+                    .queryParam("format", "json");
+
+            RestTemplate restTemplate = new RestTemplate();
+            @SuppressWarnings("rawtypes")
+            ResponseEntity<Map> response = restTemplate.getForEntity(builder.toUriString(), Map.class);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> responseBody = (Map<String, Object>) response.getBody();
+
+            if (responseBody != null) {
+                RefundResponse refundResponse = new RefundResponse();
+                refundResponse.setApiConnect((String) responseBody.get("APIConnect"));
+                refundResponse.setBankTranId((String) responseBody.get("bank_tran_id"));
+                refundResponse.setTransId((String) responseBody.get("trans_id"));
+                refundResponse.setRefundRefId((String) responseBody.get("refund_ref_id"));
+                refundResponse.setStatus((String) responseBody.get("status"));
+                refundResponse.setErrorReason((String) responseBody.get("errorReason"));
+                refundResponse.setRefundAmount(refundAmount);
+                refundResponse.setBookingId(refundRequest.getBookingId());
+                refundResponse.setPaymentId(paymentId);
+
+                // Update refund status based on response
+                if ("success".equalsIgnoreCase(refundResponse.getStatus())) {
+                    refundRepository.updateRefundStatus(paymentId, refundRequest.getBookingId(), "Processing", refundResponse.getRefundRefId());
+                    // Use atomic method to update booking status to RefundPgr and release tickets
+                    refundRepository.updateBookingStatus(refundRequest.getBookingId(), "RefundPgr");
+                } else {
+                    refundRepository.updateRefundStatus(paymentId, refundRequest.getBookingId(), "Failed", null);
+                }
+                return refundResponse;
+            }
+
+            throw new RuntimeException("No response from SSLCommerz refund API");
+
+        } catch (Exception e) {
+            System.err.println("Error initiating admin refund: " + e.getMessage());
+            throw new RuntimeException("Admin refund initiation failed: " + e.getMessage());
+        }
+    }
 
     public RefundResponse initiateRefundByStationMaster(RefundRequest refundRequest) {
         try {
@@ -347,6 +437,77 @@ public class RefundService {
             return calculateRefundAmount(bookingId);
         } catch (Exception e) {
             return 0;
+        }
+    }
+
+    public List<RefundResponse> processAdminRefunds(String trainId, String travelDate, String coachId) {
+        List<RefundResponse> refundResponses = new ArrayList<>();
+        
+        try {
+            // Get all bookings that need to be refunded
+            List<Map<String, Object>> bookings = refundRepository.getBookingsForAdminRefund(trainId, travelDate, coachId);
+            
+            System.out.println("=== ADMIN REFUND PROCESSING ===");
+            System.out.println("Found " + bookings.size() + " bookings to process for refund");
+            System.out.println("Train ID: " + trainId + ", Travel Date: " + travelDate + ", Coach ID: " + coachId);
+            
+            for (Map<String, Object> booking : bookings) {
+                String bookingId = (String) booking.get("bookingId");
+                Double total = (Double) booking.get("total");
+                int totalAmount = total.intValue(); // Convert to int for refund amount
+                
+                System.out.println("Processing admin refund for Booking ID: " + bookingId + ", Full Amount: " + totalAmount);
+                
+                try {
+                    // Create refund request
+                    RefundRequest refundRequest = new RefundRequest();
+                    refundRequest.setBookingId(bookingId);
+                    refundRequest.setRefundRemarks("Admin initiated cancellation for train " + trainId + " on " + travelDate + " (Coach: " + coachId + ")");
+                    
+                    // Process the admin refund using full total amount
+                    RefundResponse refundResponse = initiateAdminRefund(refundRequest, totalAmount);
+                    refundResponses.add(refundResponse);
+                    
+                    System.out.println("Admin refund processed for booking " + bookingId + ": " + refundResponse.getStatus());
+                    
+                } catch (Exception e) {
+                    System.err.println("Failed to process admin refund for booking " + bookingId + ": " + e.getMessage());
+                    
+                    // Create error response
+                    RefundResponse errorResponse = new RefundResponse();
+                    errorResponse.setStatus("failed");
+                    errorResponse.setErrorReason("Failed to process admin refund: " + e.getMessage());
+                    errorResponse.setApiConnect("ERROR");
+                    refundResponses.add(errorResponse);
+                }
+            }
+            
+            // Count successful refunds
+            long successCount = refundResponses.stream()
+                .filter(refund -> "success".equalsIgnoreCase(refund.getStatus()))
+                .count();
+            
+            System.out.println("Refund processing completed - Total: " + refundResponses.size() + ", Successful: " + successCount);
+            
+            // If all refunds were successful, update ticket status to CANCELLED
+            if (successCount == refundResponses.size() && successCount > 0) {
+                try {
+                    System.out.println("All refunds successful, updating ticket status to CANCELLED...");
+                    int updatedTickets = ticketService.cancelTicketsByTrainCoachAndDate(trainId, travelDate, coachId);
+                    System.out.println("Successfully updated " + updatedTickets + " tickets to CANCELLED status");
+                } catch (Exception e) {
+                    System.err.println("Error updating ticket status after successful refunds: " + e.getMessage());
+                    // Note: We don't throw here as refunds were successful, just log the error
+                }
+            } else {
+                System.out.println("Not all refunds were successful, skipping ticket status update. Success count: " + successCount + ", Total: " + refundResponses.size());
+            }
+            
+            return refundResponses;
+            
+        } catch (Exception e) {
+            System.err.println("Error in admin refund processing: " + e.getMessage());
+            throw new RuntimeException("Failed to process admin refunds", e);
         }
     }
 }

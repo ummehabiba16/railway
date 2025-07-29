@@ -47,6 +47,25 @@ public class TrainController {
         }
     }
 
+    @GetMapping("/{trainId}")
+    public ResponseEntity<?> getTrainById(@PathVariable String trainId) {
+        try {
+            TrainManagementDTO train = trainService.getTrainById(trainId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("train", train);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", e.getMessage());
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        }
+    }
+
     @GetMapping("/stations/from")
     public ResponseEntity<?> getFromStations() {
         try {
@@ -134,6 +153,23 @@ public class TrainController {
             errorResponse.put("message", e.getMessage());
             
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+    }
+
+    @GetMapping("/{trainId}/coaches")
+    public ResponseEntity<Map<String, Object>> getCoachesByTrainId(@PathVariable String trainId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            List<Map<String, String>> coaches = trainService.getCoachesByTrainId(trainId);
+            response.put("success", true);
+            response.put("coaches", coaches);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Failed to fetch coaches: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }

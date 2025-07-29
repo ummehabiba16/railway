@@ -254,4 +254,47 @@ public class TicketRepository {
         }
     }
 
+    
+    public void releaseTicketsForTrain(String trainId, String travelDate){
+        String sql = "{ call Release_Tickets_For_Train(?, ?) }";
+        try {
+            jdbcTemplate.execute((CallableStatementCreator) con -> {
+                CallableStatement cs = con.prepareCall(sql);
+                cs.setString(1, trainId); // I_TrainId parameter
+                cs.setString(2, travelDate); // I_TravelDate parameter
+                return cs;
+            }, (cs) -> {
+                cs.execute();
+                return null;
+            });
+        } catch (Exception e) {
+            throw new RuntimeException("Error calling release tickets for train procedure", e);
+        }
+    }
+
+    public int cancelTicketsByTrainCoachAndDate(String trainId, String travelDate, String coachId) {
+        String sql = """
+            UPDATE TICKET
+            SET TICKETSTATUS = 'CANCELLED'
+            WHERE 
+                TicketId IN 
+                (SELECT T.TicketId 
+                FROM TICKET T JOIN SEAT_ALLOCATION SA ON(T.TRAINSEATID = SA.TRAINSEATID)
+                JOIN SEAT S ON(S.SEATID = SA.SEATID)
+                WHERE SA.TRAINID = ? AND
+                T.TRAVELDATE = TO_DATE(?, 'DD-MM-YYYY') AND
+                S.COACHID = ? )
+            """;
+        
+        try {
+            int updatedRows = jdbcTemplate.update(sql, trainId, travelDate, coachId);
+            System.out.println("Updated " + updatedRows + " tickets to CANCELLED status for Train: " + trainId + 
+                             ", Date: " + travelDate + ", Coach: " + coachId);
+            return updatedRows;
+        } catch (Exception e) {
+            System.err.println("Error updating ticket status to CANCELLED: " + e.getMessage());
+            throw new RuntimeException("Error updating ticket status to CANCELLED", e);
+        }
+    }
+
 }
