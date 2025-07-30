@@ -188,13 +188,15 @@ const PaymentSuccess = () => {
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-gray-500 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
-                                                    প্রাথমিক যাত্রীর ছবি
+                                                    বুকিং নিশ্চিতকারীর ছবি
                                                 </p>
                                             </div>
 
                                             <div className="text-center">
                                                 <h3 className="text-lg font-bold text-orange-800 mb-2 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
-                                                    প্রাথমিক যাত্রী
+                                                    বুকিং নিশ্চিতকারী
+
+
                                                 </h3>
                                                 <p className="text-gray-700 font-medium mb-1">
                                                     {tickets[0].fullName}

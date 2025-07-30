@@ -630,7 +630,7 @@ function MyBookingsStationMaster() {
                                   {/* Primary Passenger Info */}
                                   <div className="bg-blue-50 rounded-lg p-4">
                                     <h3 className="text-lg font-bold text-blue-800 mb-3 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
-                                      প্রধান যাত্রীর তথ্য
+                                      বুকিং নিশ্চিতকারীর তথ্য
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       <div>

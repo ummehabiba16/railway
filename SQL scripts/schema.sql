@@ -196,22 +196,6 @@ CREATE TABLE TICKET (
 --   CONSTRAINT fk_route_station FOREIGN KEY (FromStationId) REFERENCES STATION(StationId)
 -- );
 
-CREATE TABLE ROUTE (
-  TrainId VARCHAR2(6),
-  FromStationId VARCHAR2(6),
-  ArrivalTime TIMESTAMP,
-  DepartureTime TIMESTAMP,
-  Halt NUMBER(5),
-  RouteDuration NUMBER(5),
-  RouteSequence NUMBER(2),
-  IsActive CHAR(1) DEFAULT 'Y' CHECK (IsActive IN ('Y', 'N')),
-  ActiveSince TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-
-  PRIMARY KEY (TrainId, FromStationId, ActiveSince),
-
-  CONSTRAINT fk_route_train FOREIGN KEY (TrainId) REFERENCES TRAIN(TrainId),
-  CONSTRAINT fk_route_station FOREIGN KEY (FromStationId) REFERENCES STATION(StationId)
-);
 
 
 CREATE TABLE AVAILABLE_DATES(

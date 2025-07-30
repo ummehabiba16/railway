@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Navbar from '../components/navBar';
 import api from '../api';
 
@@ -142,239 +143,474 @@ const AdminTickets = () => {
   return (
     <>
       <Navbar />
-      <div className="container-fluid mt-4">
-        {/* Header */}
-        <div className="row mb-4">
-          <div className="col-12">
-            <div className="d-flex justify-content-between align-items-center">
-              <h2 className="mb-0">
-                <i className="fas fa-ticket-alt me-2"></i>
-                Ticket Management
-              </h2>
-              <div>
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => navigate('/admin/dashboard')}
-                >
-                  <i className="fas fa-arrow-left me-2"></i>
-                  Back to Dashboard
-                </button>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 relative overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            className="absolute top-20 left-10 w-64 h-64 rounded-full blur-3xl opacity-20"
+            style={{
+              background: 'radial-gradient(circle, rgba(59,130,246,0.3) 0%, rgba(147,51,234,0.1) 70%, transparent 100%)',
+            }}
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 180, 360],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+          <motion.div
+            className="absolute top-1/2 right-20 w-48 h-48 rounded-full blur-3xl opacity-15"
+            style={{
+              background: 'radial-gradient(circle, rgba(147,51,234,0.4) 0%, rgba(236,72,153,0.2) 70%, transparent 100%)',
+            }}
+            animate={{
+              scale: [1.2, 1, 1.2],
+              rotate: [360, 180, 0],
+            }}
+            transition={{
+              duration: 15,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
         </div>
 
-        {/* Success Message */}
-        {successMessage && (
-          <div className="row mb-3">
-            <div className="col-12">
-              <div className="alert alert-success alert-dismissible fade show">
-                <i className="fas fa-check-circle me-2"></i>
-                {successMessage}
-                <button type="button" className="btn-close" onClick={() => setSuccessMessage('')}></button>
-              </div>
+        <div className="relative z-10 container mx-auto px-6 py-8">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8"
+          >
+            <div className="mb-4 lg:mb-0">
+              <motion.h1
+                className="text-4xl lg:text-5xl font-bold text-blue-800 mb-2 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]"
+                animate={{
+                  textShadow: [
+                    "0 0 0px rgba(59,130,246,0)",
+                    "0 0 10px rgba(59,130,246,0.3)",
+                    "0 0 0px rgba(59,130,246,0)"
+                  ]
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <span className="mr-3">🎫</span>
+                টিকিট ব্যবস্থাপনা
+              </motion.h1>
+              <p className="text-blue-600 text-lg font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                ট্রেনের টিকিট রিলিজ এবং বুকিং ব্যবস্থাপনা
+              </p>
             </div>
-          </div>
-        )}
+            <motion.button
+              onClick={() => navigate('/admin/dashboard')}
+              className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center space-x-2 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]"
+              whileHover={{
+                scale: 1.05,
+                boxShadow: "0 20px 40px rgba(107,114,128,0.4)"
+              }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span>←</span>
+              <span>ড্যাশবোর্ডে ফিরুন</span>
+            </motion.button>
+          </motion.div>
 
-        {/* Error Message */}
-        {errorMessage && (
-          <div className="row mb-3">
-            <div className="col-12">
-              <div className="alert alert-danger alert-dismissible fade show">
-                <i className="fas fa-exclamation-circle me-2"></i>
-                {errorMessage}
-                <button type="button" className="btn-close" onClick={() => setErrorMessage('')}></button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Release Tickets Forms */}
-        <div className="row">
-          {/* Release Tickets for All Trains */}
-          <div className="col-lg-6 mb-4">
-            <div className="card h-100 border-primary">
-              <div className="card-header bg-primary text-white">
-                <h5 className="mb-0">
-                  <i className="fas fa-globe me-2"></i>
-                  Release Tickets
-                </h5>
-              </div>
-              <div className="card-body">
-                <p className="card-text text-muted mb-4">
-                  Release tickets of all trains on a particular date. This will make tickets available for booking across all trains in the system.
-                </p>
-                
-                <form onSubmit={handleReleaseAllTrains}>
-                  <div className="mb-3">
-                    <label htmlFor="allTrainsDate" className="form-label fw-bold">
-                      <i className="fas fa-calendar me-2"></i>
-                      Travel Date
-                    </label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      id="allTrainsDate"
-                      value={allTrainsDate}
-                      onChange={(e) => setAllTrainsDate(e.target.value)}
-                      disabled={allTrainsLoading}
-                      required
-                    />
-                    <small className="text-muted">
-                      Select any date from today onwards for ticket release
-                    </small>
-                  </div>
-                  
-                  <div className="d-grid">
-                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      disabled={allTrainsLoading}
+          {/* Success Message */}
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <div className="bg-green-100/80 border border-green-300 text-green-800 px-6 py-4 rounded-xl backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <motion.span
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="mr-3 text-2xl"
                     >
-                      {allTrainsLoading ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2"></span>
-                          Releasing Tickets...
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-rocket me-2"></i>
-                          Release Tickets for All Trains
-                        </>
-                      )}
-                    </button>
+                      ✅
+                    </motion.span>
+                    <span className="font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      {successMessage}
+                    </span>
                   </div>
-                </form>
+                  <button
+                    onClick={() => setSuccessMessage('')}
+                    className="text-green-600 hover:text-green-800 font-bold text-xl transition-colors duration-200"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          )}
 
-          {/* Release Tickets for Specific Train */}
-          <div className="col-lg-6 mb-4">
-            <div className="card h-100 border-warning">
-              <div className="card-header bg-warning text-dark">
-                <h5 className="mb-0">
-                  <i className="fas fa-train me-2"></i>
-                  Release Tickets of a Particular Train
-                </h5>
+          {/* Error Message */}
+          {errorMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <div className="bg-red-100/80 border border-red-300 text-red-800 px-6 py-4 rounded-xl backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="mr-3 text-2xl">⚠️</span>
+                    <span className="font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      {errorMessage}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setErrorMessage('')}
+                    className="text-red-600 hover:text-red-800 font-bold text-xl transition-colors duration-200"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
-              <div className="card-body">
-                <p className="card-text text-muted mb-4">
-                  Release tickets for a specific train and date. This allows selective ticket release for individual trains.
-                </p>
+            </motion.div>
+          )}
+
+          {/* Release Tickets Forms */}
+          <div className="grid lg:grid-cols-2 gap-8 mb-8">
+            {/* Release Tickets for All Trains */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="h-full"
+            >
+              <div className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl shadow-2xl overflow-hidden h-full">
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-6">
+                  <h2 className="text-2xl font-bold font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif] flex items-center">
+                    <span className="mr-3">🌍</span>
+                    টিকিট রিলিজ (সকল ট্রেন)
+                  </h2>
+                </div>
                 
-                <form onSubmit={handleReleaseSpecificTrain}>
-                  <div className="mb-3">
-                    <label htmlFor="specificTrain" className="form-label fw-bold">
-                      <i className="fas fa-train me-2"></i>
-                      Select Train
-                    </label>
-                    {trainsLoading ? (
-                      <div className="text-center py-3">
-                        <div className="spinner-border spinner-border-sm me-2"></div>
-                        Loading trains...
-                      </div>
-                    ) : (
-                      <select
-                        className="form-select"
-                        id="specificTrain"
-                        value={specificTrainId}
-                        onChange={(e) => setSpecificTrainId(e.target.value)}
+                <div className="p-8">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-blue-700 text-lg mb-8 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]"
+                  >
+                    নির্দিষ্ট তারিখে সকল ট্রেনের টিকিট রিলিজ করুন। এটি সিস্টেমের সকল ট্রেনের জন্য টিকিট বুকিং সক্রিয় করবে।
+                  </motion.p>
+                  
+                  <form onSubmit={handleReleaseAllTrains} className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="space-y-3"
+                    >
+                      <label className="block text-lg font-bold text-blue-800 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                        <span className="mr-2">📅</span>
+                        যাত্রার তারিখ
+                      </label>
+                      <motion.input
+                        type="date"
+                        className="w-full px-4 py-4 bg-white/70 backdrop-blur-sm border border-blue-300 rounded-xl text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
+                        value={allTrainsDate}
+                        onChange={(e) => setAllTrainsDate(e.target.value)}
+                        disabled={allTrainsLoading}
+                        required
+                        whileFocus={{
+                          scale: 1.02,
+                          boxShadow: "0 0 20px rgba(59,130,246,0.3)"
+                        }}
+                      />
+                      <p className="text-blue-600 text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                        আজ থেকে শুরু করে যেকোনো তারিখ নির্বাচন করুন
+                      </p>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                      className="pt-4"
+                    >
+                      <motion.button
+                        type="submit"
+                        disabled={allTrainsLoading}
+                        className={`
+                          ${allTrainsLoading
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 hover:shadow-blue-300'
+                          } 
+                          text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl transition-all duration-300 
+                          flex items-center justify-center space-x-3 w-full
+                          font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]
+                        `}
+                        whileHover={!allTrainsLoading ? {
+                          scale: 1.02,
+                          boxShadow: "0 20px 40px rgba(59,130,246,0.4)"
+                        } : {}}
+                        whileTap={!allTrainsLoading ? { scale: 0.98 } : {}}
+                      >
+                        {allTrainsLoading ? (
+                          <>
+                            <motion.div
+                              className="w-6 h-6 border-2 border-white border-t-transparent rounded-full"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                            <span>টিকিট রিলিজ করা হচ্ছে...</span>
+                          </>
+                        ) : (
+                          <>
+                            <motion.span
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                            >
+                              🚀
+                            </motion.span>
+                            <span>সকল ট্রেনের টিকিট রিলিজ করুন</span>
+                          </>
+                        )}
+                      </motion.button>
+                    </motion.div>
+                  </form>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Release Tickets for Specific Train */}
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="h-full"
+            >
+              <div className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl shadow-2xl overflow-hidden h-full">
+                <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-8 py-6">
+                  <h2 className="text-2xl font-bold font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif] flex items-center">
+                    <span className="mr-3">🚆</span>
+                    নির্দিষ্ট ট্রেনের টিকিট রিলিজ
+                  </h2>
+                </div>
+                
+                <div className="p-8">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-orange-700 text-lg mb-8 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]"
+                  >
+                    নির্দিষ্ট ট্রেন এবং তারিখের জন্য টিকিট রিলিজ করুন। এটি নির্বাচনীয় টিকিট রিলিজের সুবিধা দেয়।
+                  </motion.p>
+                  
+                  <form onSubmit={handleReleaseSpecificTrain} className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="space-y-3"
+                    >
+                      <label className="block text-lg font-bold text-orange-800 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                        <span className="mr-2">🚆</span>
+                        ট্রেন নির্বাচন করুন
+                      </label>
+                      {trainsLoading ? (
+                        <div className="text-center py-8">
+                          <motion.div
+                            className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          />
+                          <span className="text-orange-600 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                            ট্রেনের তালিকা লোড হচ্ছে...
+                          </span>
+                        </div>
+                      ) : (
+                        <motion.select
+                          className="w-full px-4 py-4 bg-white/70 backdrop-blur-sm border border-orange-300 rounded-xl text-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]"
+                          value={specificTrainId}
+                          onChange={(e) => setSpecificTrainId(e.target.value)}
+                          disabled={specificTrainLoading}
+                          required
+                          whileFocus={{
+                            scale: 1.02,
+                            boxShadow: "0 0 20px rgba(251,146,60,0.3)"
+                          }}
+                        >
+                          <option value="">একটি ট্রেন নির্বাচন করুন...</option>
+                          {trainNames.map((trainInfo, index) => (
+                            <option key={index} value={trainInfo}>
+                              {trainInfo}
+                            </option>
+                          ))}
+                        </motion.select>
+                      )}
+                      <p className="text-orange-600 text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                        যে ট্রেনের টিকিট রিলিজ করতে চান তা নির্বাচন করুন
+                      </p>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, x: -30 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 }}
+                      className="space-y-3"
+                    >
+                      <label className="block text-lg font-bold text-orange-800 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                        <span className="mr-2">📅</span>
+                        যাত্রার তারিখ
+                      </label>
+                      <motion.input
+                        type="date"
+                        className="w-full px-4 py-4 bg-white/70 backdrop-blur-sm border border-orange-300 rounded-xl text-orange-900 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
+                        value={specificTrainDate}
+                        onChange={(e) => setSpecificTrainDate(e.target.value)}
                         disabled={specificTrainLoading}
                         required
-                      >
-                        <option value="">Choose a train...</option>
-                        {trainNames.map((trainInfo, index) => (
-                          <option key={index} value={trainInfo}>
-                            {trainInfo}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    <small className="text-muted">
-                      Select the train for which you want to release tickets
-                    </small>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <label htmlFor="specificTrainDate" className="form-label fw-bold">
-                      <i className="fas fa-calendar me-2"></i>
-                      Travel Date
-                    </label>
-                    <input
-                      type="date"
-                      className="form-control"
-                      id="specificTrainDate"
-                      value={specificTrainDate}
-                      onChange={(e) => setSpecificTrainDate(e.target.value)}
-                      disabled={specificTrainLoading}
-                      required
-                    />
-                    <small className="text-muted">
-                      Select any date from today onwards for ticket release
-                    </small>
-                  </div>
-                  
-                  <div className="d-grid">
-                    <button
-                      type="submit"
-                      className="btn btn-warning"
-                      disabled={specificTrainLoading || trainsLoading}
+                        whileFocus={{
+                          scale: 1.02,
+                          boxShadow: "0 0 20px rgba(251,146,60,0.3)"
+                        }}
+                      />
+                      <p className="text-orange-600 text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                        আজ থেকে শুরু করে যেকোনো তারিখ নির্বাচন করুন
+                      </p>
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.7 }}
+                      className="pt-4"
                     >
-                      {specificTrainLoading ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2"></span>
-                          Releasing Tickets...
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-rocket me-2"></i>
-                          Release Tickets for Selected Train
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
+                      <motion.button
+                        type="submit"
+                        disabled={specificTrainLoading || trainsLoading}
+                        className={`
+                          ${specificTrainLoading || trainsLoading
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 hover:shadow-orange-300'
+                          } 
+                          text-white px-8 py-4 rounded-xl font-bold text-lg shadow-2xl transition-all duration-300 
+                          flex items-center justify-center space-x-3 w-full
+                          font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]
+                        `}
+                        whileHover={!specificTrainLoading && !trainsLoading ? {
+                          scale: 1.02,
+                          boxShadow: "0 20px 40px rgba(251,146,60,0.4)"
+                        } : {}}
+                        whileTap={!specificTrainLoading && !trainsLoading ? { scale: 0.98 } : {}}
+                      >
+                        {specificTrainLoading ? (
+                          <>
+                            <motion.div
+                              className="w-6 h-6 border-2 border-white border-t-transparent rounded-full"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                            <span>টিকিট রিলিজ করা হচ্ছে...</span>
+                          </>
+                        ) : (
+                          <>
+                            <motion.span
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                            >
+                              🚀
+                            </motion.span>
+                            <span>নির্বাচিত ট্রেনের টিকিট রিলিজ করুন</span>
+                          </>
+                        )}
+                      </motion.button>
+                    </motion.div>
+                  </form>
+                </div>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
 
-        {/* Information Section */}
-        <div className="row mt-4">
-          <div className="col-12">
-            <div className="card">
-              <div className="card-header">
-                <h6 className="mb-0">
-                  <i className="fas fa-info-circle me-2"></i>
-                  Important Information
-                </h6>
+          {/* Information Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+          >
+            <div className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl shadow-2xl overflow-hidden">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4">
+                <h3 className="text-xl font-bold font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif] flex items-center">
+                  <span className="mr-3">ℹ️</span>
+                  গুরুত্বপূর্ণ তথ্য
+                </h3>
               </div>
-              <div className="card-body">
-                <div className="row">
-                  <div className="col-md-6">
-                    <h6 className="text-primary">Ticket Release Process</h6>
-                    <ul className="small">
-                      <li>Tickets can be released for any date from today onwards</li>
-                      <li>Releasing tickets makes them available for passenger booking</li>
-                      <li>Once released, tickets cannot be un-released</li>
-                      <li>All trains option releases tickets system-wide</li>
+              
+              <div className="p-8">
+                <div className="grid md:grid-cols-2 gap-8">
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="space-y-4"
+                  >
+                    <h4 className="text-lg font-bold text-purple-800 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      টিকিট রিলিজ প্রক্রিয়া
+                    </h4>
+                    <ul className="space-y-2 text-purple-700 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span>আজ থেকে শুরু করে যেকোনো তারিখের জন্য টিকিট রিলিজ করা যায়</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span>টিকিট রিলিজ করলে যাত্রী বুকিং করতে পারবে</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span>একবার রিলিজ করা টিকিট আর ফেরত নেওয়া যায় না</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span>সকল ট্রেন অপশন সিস্টেম-ব্যাপী টিকিট রিলিজ করে</span>
+                      </li>
                     </ul>
-                  </div>
-                  <div className="col-md-6">
-                    <h6 className="text-warning">Best Practices</h6>
-                    <ul className="small">
-                      <li>Release tickets well in advance for better booking rates</li>
-                      <li>Use specific train release for selective availability</li>
-                      <li>Monitor system capacity before mass releases</li>
-                      <li>Coordinate with station masters for peak travel dates</li>
+                  </motion.div>
+                  
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="space-y-4"
+                  >
+                    <h4 className="text-lg font-bold text-purple-800 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      সর্বোত্তম অনুশীলন
+                    </h4>
+                    <ul className="space-y-2 text-purple-700 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span>ভালো বুকিং হারের জন্য আগেই টিকিট রিলিজ করুন</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span>নির্বাচনীয় প্রাপ্যতার জন্য নির্দিষ্ট ট্রেন রিলিজ ব্যবহার করুন</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span>ব্যাপক রিলিজের আগে সিস্টেম ক্ষমতা পর্যবেক্ষণ করুন</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span>পিক ট্রাভেল তারিখের জন্য স্টেশন মাস্টারদের সাথে সমন্বয় করুন</span>
+                      </li>
                     </ul>
-                  </div>
+                  </motion.div>
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </>

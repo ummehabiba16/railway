@@ -31,6 +31,12 @@ const BookingDetailsStationMaster = () => {
   const [holdTime, setHoldTime] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState("");
   
+  // Message states for different types of notifications
+  const [successMessage, setSuccessMessage] = useState("");
+  const [verificationError, setVerificationError] = useState("");
+  const [releaseError, setReleaseError] = useState("");
+  const [paymentError, setPaymentError] = useState("");
+  
   // Verification states
   const [verificationData, setVerificationData] = useState({
     type: 'NID',
@@ -166,14 +172,16 @@ const BookingDetailsStationMaster = () => {
       verificationResult: null
     }));
     setCanProceed(false);
+    setVerificationError(""); // Clear verification error when user types
   };
 
   const handleVerify = async () => {
     if (!verificationData.value.trim()) {
-      alert('Please enter a valid number');
+      setVerificationError('অনুগ্রহ করে একটি বৈধ নম্বর লিখুন');
       return;
     }
 
+    setVerificationError("");
     setVerificationData(prev => ({ ...prev, isVerifying: true }));
 
     try {
@@ -200,22 +208,23 @@ const BookingDetailsStationMaster = () => {
     } catch (err) {
       console.error('Verification failed:', err);
       setVerificationData(prev => ({ ...prev, isVerifying: false }));
-      alert('Verification failed. Please try again.');
+      setVerificationError('যাচাইকরণ ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
     }
   };
 
   const handleReleaseTickets = async () => {
+    setReleaseError(""); // Clear any previous error
     try {
       const response = await api.post('/release', null, {
         params: { bookingId }
       });
 
       if (response.status === 200) {
-        navigate('/search');
+        navigate('/search/stationmaster');
       }
     } catch (err) {
       console.error('Failed to release tickets:', err);
-      alert('Failed to release tickets. Please try again.');
+      setReleaseError('টিকিট রিলিজ করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
     }
   };
 
@@ -277,6 +286,7 @@ const BookingDetailsStationMaster = () => {
 
   const handleConfirmPayment = async () => {
     setIsSubmitting(true);
+    setPaymentError(""); // Clear any previous payment error
     
     try {
       // First save the invoice
@@ -292,8 +302,8 @@ const BookingDetailsStationMaster = () => {
 
         console.log("Payment confirmed successfully:", response.data);
         
-        // Show success message
-        alert("Payment confirmed successfully!");
+        // Set success message and navigate
+        setSuccessMessage("পেমেন্ট সফলভাবে নিশ্চিত হয়েছে!");
         
         // Navigate to station master success page with paymentId
         navigate(`/payment/stationMaster/success/${response.data.paymentId}`);
@@ -304,9 +314,9 @@ const BookingDetailsStationMaster = () => {
     } catch (err) {
       console.error("Payment confirmation error:", err);
       if (err.message === "Invoice save failed") {
-        alert("Invoice save failed. Please try again.");
+        setPaymentError("ইনভয়েস সেভ করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।");
       } else {
-        alert("Payment confirmation failed. Please try again.");
+        setPaymentError("পেমেন্ট নিশ্চিতকরণ ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।");
       }
     } finally {
       setIsSubmitting(false);
@@ -505,6 +515,108 @@ const BookingDetailsStationMaster = () => {
                   <span className="font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
                     {errors.general}
                   </span>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-green-100/80 border border-green-300 text-green-800 px-6 py-4 rounded-xl backdrop-blur-sm mb-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <motion.span
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="mr-3 text-2xl"
+                    >
+                      ✅
+                    </motion.span>
+                    <span className="font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      {successMessage}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setSuccessMessage("")}
+                    className="text-green-600 hover:text-green-800 font-bold text-xl"
+                  >
+                    ×
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Verification Error */}
+            {verificationError && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-100/80 border border-red-300 text-red-800 px-6 py-4 rounded-xl backdrop-blur-sm mb-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="mr-3">⚠️</span>
+                    <span className="font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      {verificationError}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setVerificationError("")}
+                    className="text-red-600 hover:text-red-800 font-bold text-xl"
+                  >
+                    ×
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Release Error */}
+            {releaseError && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-100/80 border border-red-300 text-red-800 px-6 py-4 rounded-xl backdrop-blur-sm mb-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="mr-3">⚠️</span>
+                    <span className="font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      {releaseError}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setReleaseError("")}
+                    className="text-red-600 hover:text-red-800 font-bold text-xl"
+                  >
+                    ×
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Payment Error */}
+            {paymentError && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-100/80 border border-red-300 text-red-800 px-6 py-4 rounded-xl backdrop-blur-sm mb-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="mr-3">⚠️</span>
+                    <span className="font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      {paymentError}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setPaymentError("")}
+                    className="text-red-600 hover:text-red-800 font-bold text-xl"
+                  >
+                    ×
+                  </button>
                 </div>
               </motion.div>
             )}

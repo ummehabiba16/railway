@@ -245,29 +245,7 @@ function AdminDashboard() {
               </div>
             </motion.div>
 
-            {/* User Management */}
-            <motion.div
-              whileHover={{ scale: 1.02, y: -5 }}
-              className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300"
-            >
-              <div className="text-center">
-                <div className="bg-green-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-3 font-bengali">ব্যবহারকারী ব্যবস্থাপনা</h3>
-                <p className="text-gray-600 mb-6 font-bengali">ব্যবহারকারীর অ্যাকাউন্ট দেখুন এবং পরিচালনা করুন, ব্যবহারকারীর প্রতিবেদন পরিচালনা করুন।</p>
-                <motion.button 
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 w-full font-bengali"
-                  onClick={() => navigate('/admin/users')}
-                >
-                  ব্যবহারকারী পরিচালনা
-                </motion.button>
-              </div>
-            </motion.div>
+            
 
             {/* Train Management */}
             <motion.div
