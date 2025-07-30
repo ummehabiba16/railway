@@ -1,7 +1,7 @@
 import React from "react";
 import {BrowserRouter, Routes, Route} from "react-router-dom";
-import Search from "./pages/searchTrain";
-import SearchPage from "./pages/searchTrain";
+import SearchTrainForm from "./components/searchTrainForm";
+import SearchTrainFormStationMaster from "./components/SearchTrainFormStationMaster";
 import NotFound from "./pages/404";
 import TrainInfo from "./pages/trainInfo";
 import Signup from "./pages/signup";
@@ -25,14 +25,18 @@ import AdminRules from "./pages/adminRules";
 import AdminTickets from "./pages/adminTickets";
 import AdminCancellation from "./pages/adminCancellation";
 import AdminRoutes from "./pages/adminRoutes";
+import LandingPage from "./components/landingPage";
+import ErrorPage from "./components/error";
 
 function App() {
     return (
         <Routes>
-            <Route path="/" element={<SearchPage />} />
+            
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/error" element={<ErrorPage />} />
             <Route path="*" element={<NotFound />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/error" element={<NotFound />} />
+            <Route path="/search" element={<SearchTrainForm />} />
+            <Route path="/search/stationmaster" element={<SearchTrainFormStationMaster />} />
             <Route path="/trainInfo" element={<TrainInfo />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />

@@ -1,19 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import Navbar from '../components/navBar';
 import api from '../api';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import { FaUser, FaCamera, FaUpload } from 'react-icons/fa';
 
 function Profile() {
-  const navigate = useNavigate();
-  const [userInfo, setUserInfo] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({});
-  const [profileImage, setProfileImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [notifications, setNotifications] = useState([]);
+    const navigate = useNavigate();
+    const containerRef = useRef(null);
+    const { scrollY } = useScroll();
+    const [userInfo, setUserInfo] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [editing, setEditing] = useState(false);
+    const [editForm, setEditForm] = useState({});
+    const [profileImage, setProfileImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [notifications, setNotifications] = useState([]);
+    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+    // Background animation
+    const backgroundColor = useTransform(
+        scrollY,
+        [0, 300, 600, 900],
+        [
+            "linear-gradient(135deg, #FFF7ED 0%, #FFE4E1 50%, #E0F2FE 100%)",
+            "linear-gradient(135deg, #FFEAA7 0%, #FDCB6E 50%, #E17055 100%)",
+            "linear-gradient(135deg, #74B9FF 0%, #0984E3 50%, #A29BFE 100%)",
+            "linear-gradient(135deg, #FD79A8 0%, #FDCB6E 50%, #E84393 100%)"
+        ]
+    );
+
+    const backgroundY = useTransform(scrollY, [0, 1000], [0, -300]);
+
+    // Mouse tracking for interactive elements
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            setMousePosition({
+                x: e.clientX,
+                y: e.clientY,
+            });
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
 
   // Notification functions
   const showNotification = (message, type = 'info', duration = 5000) => {
@@ -75,6 +104,20 @@ function Profile() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Handle birth registration number validation
+    if (name === 'birthRegNum') {
+      // Only allow numbers and limit to 17 digits
+      const cleanValue = value.replace(/\D/g, '');
+      if (cleanValue.length <= 17) {
+        setEditForm(prev => ({
+          ...prev,
+          [name]: cleanValue
+        }));
+      }
+      return;
+    }
+
     setEditForm(prev => ({
       ...prev,
       [name]: value
@@ -104,6 +147,11 @@ function Profile() {
     // 1. User is 18 or older AND
     // 2. NID is not already set
     return isAdult() && (!userInfo?.nid || userInfo.nid.trim() === '');
+  };
+
+  const canEditBirthRegNum = () => {
+    // Birth registration number can only be set if not already set
+    return !userInfo?.birthRegNum || userInfo.birthRegNum.trim() === '';
   };
 
   const shouldShowNID = () => {
@@ -230,354 +278,638 @@ function Profile() {
     }
   };
 
+  // Floating Particle Component
+  const FloatingParticle = ({ delay, size }) => (
+    <motion.div
+      className={`absolute ${size === 1 ? 'w-2 h-2' : 'w-3 h-3'} bg-orange-300 rounded-full opacity-30`}
+      style={{
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+      }}
+      animate={{
+        y: [0, -100, 0],
+        x: [0, Math.random() * 50 - 25, 0],
+        opacity: [0.3, 0.7, 0.3],
+      }}
+      transition={{
+        duration: 8 + delay,
+        repeat: Infinity,
+        ease: "easeInOut",
+        delay: delay,
+      }}
+    />
+  );
+
   if (loading) {
     return (
-      <>
+      <div ref={containerRef} className="relative overflow-hidden min-h-screen">
+        <motion.div style={{ backgroundColor, y: backgroundY }} className="fixed inset-0 z-0" />
         <Navbar />
-        <div className="container mt-4">
-          <div className="text-center">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-            <p className="mt-3 text-muted">Loading your profile...</p>
-          </div>
+
+        {/* Ambient Elements */}
+        <div className="fixed inset-0 pointer-events-none z-1">
+          {[...Array(20)].map((_, i) => (
+            <FloatingParticle key={i} delay={i * 2} size={Math.random() > 0.5 ? 1 : 2} />
+          ))}
         </div>
-      </>
+
+        <main className="relative min-h-screen flex items-center justify-center px-6 pt-32 pb-12 z-30">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            className="text-center bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-12 shadow-2xl"
+          >
+            <motion.div
+              className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full mx-auto mb-4"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+            <h2 className="text-2xl font-bold text-orange-800 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+              প্রোফাইল লোড হচ্ছে...
+            </h2>
+          </motion.div>
+        </main>
+      </div>
     );
   }
 
   return (
-    <>
+    <div ref={containerRef} className="relative overflow-hidden min-h-screen">
+      <motion.div style={{ backgroundColor, y: backgroundY }} className="fixed inset-0 z-0" />
       <Navbar />
-      <div className="container mt-4">
-        <div className="row justify-content-center">
-          <div className="col-md-8 col-lg-6">
-            <div className="card shadow-sm">
-              <div className="card-header bg-primary text-white">
-                <div className="d-flex justify-content-between align-items-center">
-                  <h4 className="mb-0">👤 My Profile</h4>
-                  {!editing && (
-                    <button
-                      className="btn btn-outline-light btn-sm"
-                      onClick={() => setEditing(true)}
-                    >
-                      ✏️ Edit Profile
-                    </button>
-                  )}
-                </div>
-              </div>
 
-              <div className="card-body">
-                {/* Profile Image */}
-                <div className="text-center mb-4">
-                  <div className="position-relative d-inline-block">
-                    {userInfo?.profileImage || imagePreview ? (
-                      <img
-                        src={imagePreview || `data:image/jpeg;base64,${userInfo.profileImage}`}
-                        alt="Profile"
-                        className="rounded-circle border"
-                        style={{ width: '150px', height: '150px', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <div 
-                        className="rounded-circle border bg-light d-flex align-items-center justify-content-center"
-                        style={{ width: '150px', height: '150px' }}
-                      >
-                        <FaUser size={60} className="text-muted" />
-                      </div>
-                    )}
-                    
-                    {editing && (
-                      <div className="mt-3">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="d-none"
-                          id="profileImageInput"
-                        />
-                        <label htmlFor="profileImageInput" className="btn btn-outline-primary btn-sm">
-                          <FaCamera className="me-2" />
-                          {userInfo?.profileImage || imagePreview ? 'Change Photo' : 'Upload Photo'}
-                        </label>
-                        <div className="mt-1">
-                          <small className="text-muted">Max size: 5MB</small>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* User Information */}
-                <div className="row">
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label fw-bold">First Name</label>
-                    {editing ? (
-                      <input
-                        type="text"
-                        className="form-control"
-                        name="firstName"
-                        value={editForm.firstName || ''}
-                        onChange={handleInputChange}
-                        maxLength="50"
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">{userInfo?.firstName || 'Not specified'}</p>
-                    )}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label fw-bold">Last Name</label>
-                    {editing ? (
-                      <input
-                        type="text"
-                        className="form-control"
-                        name="lastName"
-                        value={editForm.lastName || ''}
-                        onChange={handleInputChange}
-                        maxLength="50"
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">{userInfo?.lastName || 'Not specified'}</p>
-                    )}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label fw-bold">Email</label>
-                    {editing ? (
-                      <input
-                        type="email"
-                        className="form-control"
-                        name="email"
-                        value={editForm.email || ''}
-                        onChange={handleInputChange}
-                        maxLength="50"
-                        disabled
-                        title="Email cannot be changed"
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">{userInfo?.email || 'Not specified'}</p>
-                    )}
-                    {editing && (
-                      <small className="text-muted">📧 Email cannot be changed for security reasons</small>
-                    )}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label fw-bold">Phone Number</label>
-                    {editing ? (
-                      <input
-                        type="tel"
-                        className="form-control"
-                        name="phoneNum"
-                        value={editForm.phoneNum || ''}
-                        onChange={handleInputChange}
-                        maxLength="20"
-                        disabled
-                        title="Phone number cannot be changed"
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">{userInfo?.phoneNum || 'Not specified'}</p>
-                    )}
-                    {editing && (
-                      <small className="text-muted">📱 Phone number cannot be changed for security reasons</small>
-                    )}
-                  </div>
-
-                  {shouldShowNID() && (
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label fw-bold">National ID (NID)</label>
-                      {editing ? (
-                        <input
-                          type="text"
-                          className="form-control"
-                          name="nid"
-                          value={editForm.nid || ''}
-                          onChange={handleInputChange}
-                          maxLength="20"
-                          disabled={!canEditNID()}
-                          title={!canEditNID() ? "NID cannot be changed once set" : "Enter your National ID"}
-                        />
-                      ) : (
-                        <p className="form-control-plaintext">{userInfo?.nid || 'Not specified'}</p>
-                      )}
-                      {editing && !canEditNID() && userInfo?.nid && (
-                        <small className="text-muted">🆔 NID cannot be changed once set</small>
-                      )}
-                      {editing && canEditNID() && (
-                        <small className="text-success">🆔 You can set your NID (18+ years old)</small>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label fw-bold">Gender</label>
-                    {editing ? (
-                      <select
-                        className="form-select"
-                        name="gender"
-                        value={editForm.gender || ''}
-                        onChange={handleInputChange}
-                      >
-                        <option value="">Select Gender</option>
-                        <option value="M">Male</option>
-                        <option value="F">Female</option>
-                        <option value="O">Other</option>
-                      </select>
-                    ) : (
-                      <p className="form-control-plaintext">{getGenderText(userInfo?.gender)}</p>
-                    )}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label fw-bold">Birth Registration Number</label>
-                    {editing ? (
-                      <input
-                        type="text"
-                        className="form-control"
-                        name="birthRegNum"
-                        value={editForm.birthRegNum || ''}
-                        onChange={handleInputChange}
-                        maxLength="20"
-                        disabled
-                        title="Birth registration number cannot be changed"
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">{userInfo?.birthRegNum || 'Not specified'}</p>
-                    )}
-                    {editing && (
-                      <small className="text-muted">📜 Birth registration number cannot be changed</small>
-                    )}
-                  </div>
-
-                  <div className="col-md-6 mb-3">
-                    <label className="form-label fw-bold">Date of Birth</label>
-                    {editing ? (
-                      <div>
-                        <input
-                          type="date"
-                          className="form-control"
-                          name="dateOfBirth"
-                          value={formatDateForInput(editForm.dateOfBirth)}
-                          onChange={handleInputChange}
-                          disabled
-                          title="Date of birth cannot be changed"
-                        />
-                        <small className="text-muted">📅 Date of birth cannot be changed</small>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="form-control-plaintext">{formatDate(userInfo?.dateOfBirth)}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="col-12 mb-3">
-                    <label className="form-label fw-bold">Address</label>
-                    {editing ? (
-                      <textarea
-                        className="form-control"
-                        name="address"
-                        value={editForm.address || ''}
-                        onChange={handleInputChange}
-                        rows="3"
-                        maxLength="200"
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">{userInfo?.address || 'Not specified'}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                {editing && (
-                  <div className="d-flex gap-2 justify-content-end">
-                    <button
-                      className="btn btn-secondary"
-                      onClick={handleCancel}
-                      disabled={loading}
-                    >
-                      ❌ Cancel
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={handleSave}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2"></span>
-                          Saving...
-                        </>
-                      ) : (
-                        '💾 Save Changes'
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Notifications Container */}
-      <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 1055 }}>
-        {notifications.map((notification) => (
-          <div
-            key={notification.id}
-            className={`alert alert-${
-              notification.type === 'error' ? 'danger' :
-              notification.type === 'success' ? 'success' :
-              notification.type === 'warning' ? 'warning' : 'info'
-            } alert-dismissible fade show shadow-sm mb-2 notification-slide-in`}
-            role="alert"
-            style={{ 
-              minWidth: '300px',
-              maxWidth: '400px'
-            }}
-          >
-            <div className="d-flex align-items-start">
-              <div className="me-2">
-                {notification.type === 'success' && '✅'}
-                {notification.type === 'error' && '❌'}
-                {notification.type === 'warning' && '⚠️'}
-                {notification.type === 'info' && 'ℹ️'}
-              </div>
-              <div className="flex-grow-1">
-                {notification.message}
-              </div>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={() => removeNotification(notification.id)}
-                aria-label="Close"
-              ></button>
-            </div>
-          </div>
+      {/* Ambient Elements */}
+      <div className="fixed inset-0 pointer-events-none z-1">
+        {[...Array(20)].map((_, i) => (
+          <FloatingParticle key={i} delay={i * 2} size={Math.random() > 0.5 ? 1 : 2} />
         ))}
       </div>
 
-      {/* Custom CSS for animations */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          @keyframes slideInRight {
-            from {
-              transform: translateX(100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateX(0);
-              opacity: 1;
-            }
-          }
-          
-          .notification-slide-in {
-            animation: slideInRight 0.3s ease-out;
-          }
-        `
-      }} />
-    </>
+      {/* Interactive Background Elements */}
+      <motion.div className="fixed inset-0 overflow-hidden pointer-events-none z-2" style={{ y: backgroundY }}>
+        {/* Dynamic gradient orbs */}
+        <motion.div
+          className="absolute top-20 left-10 w-64 h-64 rounded-full blur-3xl"
+          style={{
+            background: `radial-gradient(circle, rgba(255,165,0,0.1) 0%, rgba(255,69,0,0.05) 70%, transparent 100%)`,
+            x: mousePosition.x * 0.01,
+            y: mousePosition.y * 0.01,
+          }}
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 180, 360],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 right-20 w-48 h-48 rounded-full blur-3xl"
+          style={{
+            background: `radial-gradient(circle, rgba(255,215,0,0.15) 0%, rgba(255,140,0,0.08) 70%, transparent 100%)`,
+            x: mousePosition.x * -0.005,
+            y: mousePosition.y * -0.005,
+          }}
+          animate={{
+            scale: [1.2, 1, 1.2],
+            rotate: [360, 180, 0],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
+      </motion.div>
+
+      <main className="relative min-h-screen px-6 pt-32 pb-12 z-30">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-8"
+          >
+            <motion.h1
+              className="text-4xl md:text-5xl font-black text-orange-800 mb-4 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]"
+              animate={{
+                textShadow: [
+                  "0 0 0px rgba(255,102,0,0)",
+                  "0 0 10px rgba(255,102,0,0.3)",
+                  "0 0 0px rgba(255,102,0,0)"
+                ]
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              👤 আমার প্রোফাইল
+            </motion.h1>
+            <motion.p
+              className="text-orange-600 text-lg font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              আপনার ব্যক্তিগত তথ্য পরিচালনা করুন
+            </motion.p>
+          </motion.div>
+
+          {/* Profile Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-8 shadow-2xl"
+          >
+            {/* Edit Button Header */}
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center space-x-3">
+                <span className="text-3xl">📋</span>
+                <h2 className="text-2xl font-bold text-orange-800 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                  প্রোফাইল তথ্য
+                </h2>
+              </div>
+              {!editing && (
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setEditing(true)}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-blue-300 transition-all duration-300 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]"
+                >
+                  ✏️ প্রোফাইল এডিট করুন
+                </motion.button>
+              )}
+            </div>
+
+            {/* Profile Image */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-center mb-8"
+            >
+              <div className="relative inline-block">
+                {userInfo?.profileImage || imagePreview ? (
+                  <motion.img
+                    src={imagePreview || `data:image/jpeg;base64,${userInfo.profileImage}`}
+                    alt="Profile"
+                    className="w-32 h-32 rounded-full border-4 border-white shadow-2xl object-cover"
+                    whileHover={{ scale: 1.05 }}
+                  />
+                ) : (
+                  <motion.div
+                    className="w-32 h-32 rounded-full border-4 border-white bg-gradient-to-br from-orange-200 to-pink-200 flex items-center justify-center shadow-2xl"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <span className="text-4xl">👤</span>
+                  </motion.div>
+                )}
+
+                {editing && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4"
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="profileImageInput"
+                    />
+                    <motion.label
+                      htmlFor="profileImageInput"
+                      className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-500 to-blue-500 text-white px-4 py-2 rounded-xl font-bold cursor-pointer shadow-lg hover:shadow-green-300 transition-all duration-300 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <span>📷</span>
+                      <span>{userInfo?.profileImage || imagePreview ? 'ছবি পরিবর্তন করুন' : 'ছবি আপলোড করুন'}</span>
+                    </motion.label>
+                    <p className="text-sm text-orange-600 mt-2 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      সর্বোচ্চ আকার: ৫ এমবি
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+
+            {/* User Information Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* First Name */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="space-y-2"
+              >
+                <label className="block text-orange-700 font-bold text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                  প্রথম নাম
+                </label>
+                {editing ? (
+                  <motion.input
+                    type="text"
+                    name="firstName"
+                    value={editForm.firstName || ''}
+                    onChange={handleInputChange}
+                    maxLength="50"
+                    className="w-full px-4 py-3 bg-white/30 border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 text-orange-900 placeholder-orange-400"
+                    whileFocus={{
+                      scale: 1.02,
+                      boxShadow: "0 0 20px rgba(255,102,0,0.3)"
+                    }}
+                  />
+                ) : (
+                  <p className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-orange-900">
+                    {userInfo?.firstName || 'নির্দিষ্ট নয়'}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Last Name */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="space-y-2"
+              >
+                <label className="block text-orange-700 font-bold text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                  শেষ নাম
+                </label>
+                {editing ? (
+                  <motion.input
+                    type="text"
+                    name="lastName"
+                    value={editForm.lastName || ''}
+                    onChange={handleInputChange}
+                    maxLength="50"
+                    className="w-full px-4 py-3 bg-white/30 border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 text-orange-900 placeholder-orange-400"
+                    whileFocus={{
+                      scale: 1.02,
+                      boxShadow: "0 0 20px rgba(255,102,0,0.3)"
+                    }}
+                  />
+                ) : (
+                  <p className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-orange-900">
+                    {userInfo?.lastName || 'নির্দিষ্ট নয়'}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Email */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.5 }}
+                className="space-y-2"
+              >
+                <label className="block text-orange-700 font-bold text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                  ইমেইল
+                </label>
+                {editing ? (
+                  <div>
+                    <motion.input
+                      type="email"
+                      name="email"
+                      value={editForm.email || ''}
+                      onChange={handleInputChange}
+                      maxLength="50"
+                      disabled
+                      className="w-full px-4 py-3 bg-gray-100/50 border border-gray-300/50 rounded-xl text-gray-600 cursor-not-allowed"
+                      title="Email cannot be changed"
+                    />
+                    <p className="text-xs text-orange-600 mt-1 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      📧 নিরাপত্তার কারণে ইমেইল পরিবর্তন করা যাবে না
+                    </p>
+                  </div>
+                ) : (
+                  <p className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-orange-900">
+                    {userInfo?.email || 'নির্দিষ্ট নয়'}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Phone Number */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+                className="space-y-2"
+              >
+                <label className="block text-orange-700 font-bold text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                  ফোন নম্বর
+                </label>
+                {editing ? (
+                  <div>
+                    <motion.input
+                      type="tel"
+                      name="phoneNum"
+                      value={editForm.phoneNum || ''}
+                      onChange={handleInputChange}
+                      maxLength="20"
+                      disabled
+                      className="w-full px-4 py-3 bg-gray-100/50 border border-gray-300/50 rounded-xl text-gray-600 cursor-not-allowed"
+                      title="Phone number cannot be changed"
+                    />
+                    <p className="text-xs text-orange-600 mt-1 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      📱 নিরাপত্তার কারণে ফোন নম্বর পরিবর্তন করা যাবে না
+                    </p>
+                  </div>
+                ) : (
+                  <p className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-orange-900">
+                    {userInfo?.phoneNum || 'নির্দিষ্ট নয়'}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* National ID (NID) - Only show for adults */}
+              {shouldShowNID() && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8, delay: 0.7 }}
+                  className="space-y-2"
+                >
+                  <label className="block text-orange-700 font-bold text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                    জাতীয় পরিচয়পত্র (এনআইডি)
+                  </label>
+                  {editing ? (
+                    <div>
+                      <motion.input
+                        type="text"
+                        name="nid"
+                        value={editForm.nid || ''}
+                        onChange={handleInputChange}
+                        maxLength="20"
+                        disabled={!canEditNID()}
+                        className={`w-full px-4 py-3 rounded-xl focus:outline-none transition-all duration-300 ${canEditNID()
+                          ? 'bg-white/30 border border-white/50 focus:ring-2 focus:ring-orange-500 focus:border-transparent text-orange-900 placeholder-orange-400'
+                          : 'bg-gray-100/50 border border-gray-300/50 text-gray-600 cursor-not-allowed'
+                          }`}
+                        title={!canEditNID() ? "NID cannot be changed once set" : "Enter your National ID"}
+                        whileFocus={canEditNID() ? {
+                          scale: 1.02,
+                          boxShadow: "0 0 20px rgba(255,102,0,0.3)"
+                        } : {}}
+                      />
+                      {!canEditNID() && userInfo?.nid && (
+                        <p className="text-xs text-orange-600 mt-1 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                          🆔 একবার সেট করার পর এনআইডি পরিবর্তন করা যাবে না
+                        </p>
+                      )}
+                      {canEditNID() && (
+                        <p className="text-xs text-green-600 mt-1 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                          🆔 আপনি আপনার এনআইডি সেট করতে পারেন (১৮+ বছর বয়সী)
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-orange-900">
+                      {userInfo?.nid || 'নির্দিষ্ট নয়'}
+                    </p>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Gender */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
+                className="space-y-2"
+              >
+                <label className="block text-orange-700 font-bold text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                  লিঙ্গ
+                </label>
+                {editing ? (
+                  <motion.select
+                    name="gender"
+                    value={editForm.gender || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 bg-white/30 border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 text-orange-900"
+                    whileFocus={{
+                      scale: 1.02,
+                      boxShadow: "0 0 20px rgba(255,102,0,0.3)"
+                    }}
+                  >
+                    <option value="">লিঙ্গ নির্বাচন করুন</option>
+                    <option value="M">পুরুষ</option>
+                    <option value="F">মহিলা</option>
+                    <option value="O">অন্যান্য</option>
+                  </motion.select>
+                ) : (
+                  <p className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-orange-900">
+                    {getGenderText(userInfo?.gender)}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Birth Registration Number */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.9 }}
+                className="space-y-2"
+              >
+                <label className="block text-orange-700 font-bold text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                  জন্ম নিবন্ধন নম্বর
+                </label>
+                {editing ? (
+                  <div>
+                    <motion.input
+                      type="text"
+                      name="birthRegNum"
+                      value={editForm.birthRegNum || ''}
+                      onChange={handleInputChange}
+                      maxLength="17"
+                      disabled={!canEditBirthRegNum()}
+                      className={`w-full px-4 py-3 rounded-xl focus:outline-none transition-all duration-300 ${canEditBirthRegNum()
+                        ? 'bg-white/30 border border-white/50 focus:ring-2 focus:ring-orange-500 focus:border-transparent text-orange-900 placeholder-orange-400'
+                        : 'bg-gray-100/50 border border-gray-300/50 text-gray-600 cursor-not-allowed'
+                        }`}
+                      placeholder="১৭ ডিজিটের জন্ম নিবন্ধন নম্বর"
+                      title={!canEditBirthRegNum() ? "Birth registration number cannot be changed once set" : "Enter your birth registration number (17 digits)"}
+                      whileFocus={canEditBirthRegNum() ? {
+                        scale: 1.02,
+                        boxShadow: "0 0 20px rgba(255,102,0,0.3)"
+                      } : {}}
+                    />
+                    {!canEditBirthRegNum() && userInfo?.birthRegNum && (
+                      <p className="text-xs text-orange-600 mt-1 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                        📜 একবার সেট করার পর জন্ম নিবন্ধন নম্বর পরিবর্তন করা যাবে না
+                      </p>
+                    )}
+                    {canEditBirthRegNum() && (
+                      <p className="text-xs text-green-600 mt-1 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                        📜 আপনি আপনার জন্ম নিবন্ধন নম্বর সেট করতে পারেন (১৭ ডিজিট)
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-orange-900">
+                    {userInfo?.birthRegNum || 'নির্দিষ্ট নয়'}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Date of Birth */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 1.0 }}
+                className="space-y-2"
+              >
+                <label className="block text-orange-700 font-bold text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                  জন্ম তারিখ
+                </label>
+                {editing ? (
+                  <div>
+                    <motion.input
+                      type="date"
+                      name="dateOfBirth"
+                      value={formatDateForInput(editForm.dateOfBirth)}
+                      onChange={handleInputChange}
+                      disabled
+                      className="w-full px-4 py-3 bg-gray-100/50 border border-gray-300/50 rounded-xl text-gray-600 cursor-not-allowed"
+                      title="Date of birth cannot be changed"
+                    />
+                    <p className="text-xs text-orange-600 mt-1 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                      📅 জন্ম তারিখ পরিবর্তন করা যাবে না
+                    </p>
+                  </div>
+                ) : (
+                  <p className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-orange-900">
+                    {formatDate(userInfo?.dateOfBirth)}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Address */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 1.1 }}
+                className="md:col-span-2 space-y-2"
+              >
+                <label className="block text-orange-700 font-bold text-sm font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif]">
+                  ঠিকানা
+                </label>
+                {editing ? (
+                  <motion.textarea
+                    name="address"
+                    value={editForm.address || ''}
+                    onChange={handleInputChange}
+                    rows="3"
+                    maxLength="200"
+                    className="w-full px-4 py-3 bg-white/30 border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-300 text-orange-900 placeholder-orange-400 resize-none"
+                    placeholder="আপনার সম্পূর্ণ ঠিকানা লিখুন"
+                    whileFocus={{
+                      scale: 1.02,
+                      boxShadow: "0 0 20px rgba(255,102,0,0.3)"
+                    }}
+                  />
+                ) : (
+                  <p className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-orange-900 min-h-[80px]">
+                    {userInfo?.address || 'নির্দিষ্ট নয়'}
+                  </p>
+                )}
+              </motion.div>
+            </div>
+
+            {/* Action Buttons */}
+            {editing && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 1.2 }}
+                className="flex flex-col sm:flex-row gap-4 justify-end mt-8"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCancel}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-gray-300 transition-all duration-300 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ❌ বাতিল করুন
+                </motion.button>
+                <motion.button
+                  whileHover={!loading ? { scale: 1.05, y: -2 } : {}}
+                  whileTap={!loading ? { scale: 0.95 } : {}}
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-orange-300 transition-all duration-300 font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {loading ? (
+                    <>
+                      <motion.div
+                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      />
+                      <span>সংরক্ষণ করা হচ্ছে...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>💾</span>
+                      <span>পরিবর্তন সংরক্ষণ করুন</span>
+                    </>
+                  )}
+                </motion.button>
+              </motion.div>
+            )}
+          </motion.div>
+        </div>
+      </main>
+
+      {/* Notifications Container */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {notifications.map((notification) => (
+          <motion.div
+            key={notification.id}
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            className={`p-4 rounded-xl shadow-2xl backdrop-blur-xl border min-w-[300px] max-w-[400px] ${
+              notification.type === 'error' ? 'bg-red-500/20 border-red-300 text-red-800' :
+              notification.type === 'success' ? 'bg-green-500/20 border-green-300 text-green-800' :
+              notification.type === 'warning' ? 'bg-yellow-500/20 border-yellow-300 text-yellow-800' :
+              'bg-blue-500/20 border-blue-300 text-blue-800'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-3">
+                <span className="text-lg">
+                  {notification.type === 'success' && '✅'}
+                  {notification.type === 'error' && '❌'}
+                  {notification.type === 'warning' && '⚠️'}
+                  {notification.type === 'info' && 'ℹ️'}
+                </span>
+                <p className="font-medium font-['Noto_Sans_Bengali',_'SolaimanLipi',_'Kalpurush',_serif] flex-1">
+                  {notification.message}
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => removeNotification(notification.id)}
+                className="text-current opacity-70 hover:opacity-100 ml-2"
+              >
+                ✕
+              </motion.button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
   );
 }
 

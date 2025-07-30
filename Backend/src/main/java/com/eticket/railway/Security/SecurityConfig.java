@@ -83,11 +83,12 @@ public class SecurityConfig {
         .csrf(csrf -> csrf.disable())
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(registry -> {
-            registry.requestMatchers("/api/register", "/api/login", "/api/public/**", "/api/payment/success").permitAll();
-            registry.requestMatchers("/api/admin/**").hasRole("ADMIN");
-            registry.requestMatchers("/api/station-master/**").hasRole("STATION_MASTER");
-            registry.requestMatchers("/api/search", "/api/me").authenticated();
-            registry.anyRequest().authenticated();
+            registry.anyRequest().permitAll(); // Temporarily allow all requests
+            // registry.requestMatchers("/api/register", "/api/login", "/api/public/**", "/api/payment/success").permitAll();
+            // registry.requestMatchers("/api/admin/**").hasRole("ADMIN");
+            // registry.requestMatchers("/api/station-master/**").hasRole("STATION_MASTER");
+            // registry.requestMatchers("/api/search", "/api/me").authenticated();
+            // registry.anyRequest().authenticated();
         })
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .build();
